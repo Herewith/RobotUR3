@@ -1,0 +1,2252 @@
+def HOME():
+  set_gravity([0.0, 0.0, 9.82])
+  set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+  set_payload(0.0)
+  set_tool_voltage(0)
+  set_standard_analog_input_domain(0, 1)
+  set_standard_analog_input_domain(1, 1)
+  set_tool_analog_input_domain(0, 1)
+  set_tool_analog_input_domain(1, 1)
+  set_analog_outputdomain(0, 0)
+  set_analog_outputdomain(1, 0)
+  set_input_actions_to_default()
+  set_safety_mode_transition_hardness(1)
+  def connection():
+    global IP="192.168.0.120"
+    global STATUSAS=""
+    global need_reset=  True  
+    global box1_q=20
+    global box2_q=20
+    global box1_ready=  False  
+    global box2_ready=  False  
+    global running_box=0
+    global started_fill_ms=  False  
+    global port=9999
+    global name="pc"
+    global connected=  False  
+    global command=""
+    global pingafter=500
+    while (True):
+      global trytimes=pingafter
+      while (connected ==   False  ):
+        global connected=socket_open(IP, port, name)
+        sleep(0.01)
+      end
+      socket_send_string("connected", name)
+      if (need_reset ==   True  ):
+        socket_send_string("reset", name)
+        global need_reset=  False  
+      end
+      while (connected):
+        global msg=socket_read_string(name)
+        if (started_fill_ms ==   True  ):
+          socket_send_string("CRF;"+to_str(running_box), name)
+          global started_fill_ms=  False  
+        else:
+          if (STATUSAS != ""):
+            socket_send_string("STS;"+STATUSAS, name)
+            global STATUSAS=""
+          end
+        end
+        if (boxstatus != sendboxstatus):
+          socket_send_string("BOX"+boxstatus, name)
+          global sendboxstatus=boxstatus
+        end
+        if (msg != ""):
+          global command=msg
+          global trytimes=pingafter
+          if (command == "X_P"):
+            socket_send_string("X_P;0;VC_senos_dezes;24", name)
+            socket_send_string("X_P;1;Ragai;20", name)
+            socket_send_string("X_P;2;TR_dideli_nofl;24", name)
+          else:
+            if (str_sub(command, 0, 3)=="PPP"):
+              global ProgramID=to_num(str_sub(command,3))
+            else:
+              if (str_sub(command, 0, 3)=="BOX"):
+                if (str_sub(command,3,1)=="1"):
+                  global box1_q=to_num(str_sub(command,4))
+                else:
+                  global box2_q=to_num(str_sub(command,4))
+                end
+              else:
+                if (str_sub(command, 0, 3)=="RED"):
+                  if (str_sub(command,3,1)=="1"):
+                    if (str_sub(command,4,1)=="1"):
+                      global box1_ready=  False  
+                    else:
+                      global box1_ready=  True  
+                    end
+                  else:
+                    if (str_sub(command,4,1)=="1"):
+                      global box2_ready=  False  
+                    else:
+                      global box2_ready=  True  
+                    end
+                  end
+                else:
+                  if (command == "STOP"):
+                    global loop1=0
+                    set_configurable_digital_out(7, False)
+                    set_configurable_digital_out(6, False)
+                    global kiekis=0
+                  else:
+                    if (command == "STAND"):
+                      set_configurable_digital_out(7, False)
+                      set_configurable_digital_out(6, False)
+                      halt
+                    end
+                  end
+                end
+              end
+            end
+          end
+          socket_send_string("OKSEND", name)
+        else:
+          if (trytimes == 5):
+            global trytimes=trytimes-1
+            socket_send_string("PING", name)
+          else:
+            global trytimes=trytimes-1
+            if (trytimes<0):
+              global connected=  False  
+            end
+          end
+        end
+        sleep(0.01)
+      end
+      socket_close(name)
+      sleep(1.0)
+    end
+  end
+  $ 1100 "Thread_1"
+  thread Thread_1():
+    while (True):
+      if (IS_HOME ==   True  ):
+        if (get_standard_digital_in(1) ==   False    and  get_standard_digital_in(6) ==   False  ):
+          global NUSIPILA=  True  
+          movej([4.059589862823486, -0.23892623582948858, -0.6957071463214319, -0.7666257063495081, 1.3734469413757324, -4.050081793461935], a=1.3962634015954636, v=1.0471975511965976)
+          if (IS_HOME ==   True  ):
+            global NUSIPYLIMO_EIL=NUSIPYLIMO_EIL+1
+            global NUSIPILA=  True  
+            set_standard_digital_out(0, True)
+            sleep(0.1)
+            set_standard_digital_out(0, False)
+            sleep(1.0)
+            sleep(4.0)
+            set_standard_digital_out(0, True)
+            sleep(0.1)
+            set_standard_digital_out(0, False)
+            global NUSIPILA=  False  
+          end
+          sleep(35.0)
+        else:
+          if (get_standard_digital_in(7) ==   False    and  get_standard_digital_in(4) ==   True  ):
+            global NUSIPILA=  True  
+            movej([4.059554576873779, -0.23892623582948858, -0.6957553068744105, -0.7666257063495081, 1.3734945058822632, -4.050105873738424], a=1.3962634015954636, v=1.0471975511965976)
+            if (IS_HOME ==   True  ):
+              global NUSIPYLIMO_EIL=NUSIPYLIMO_EIL+1
+              global NUSIPILA=  True  
+              set_standard_digital_out(0, True)
+              sleep(0.1)
+              set_standard_digital_out(0, False)
+              sleep(1.0)
+              while (get_standard_digital_in(0) == True):
+                sync()
+              end
+              global NUSIPILA=  False  
+            end
+            sleep(35.0)
+          else:
+            set_standard_digital_out(1, False)
+            sleep(0.5)
+            set_standard_digital_out(1, False)
+            sleep(0.2)
+          end
+        end
+      else:
+        sleep(15.0)
+      end
+    end
+  end
+  threadId_Thread_1 = run Thread_1()
+  $ 1140 "Thread_3"
+  thread Thread_3():
+    while (True):
+      if (NUSIPYLIMO_EIL>1):
+        set_standard_digital_out(1, True)
+        sleep(0.4)
+        set_standard_digital_out(1, False)
+      end
+      sleep(0.5)
+    end
+  end
+  threadId_Thread_3 = run Thread_3()
+  $ 1146 "Thread_2"
+  thread Thread_2():
+    while (True):
+      connection()
+    end
+  end
+  threadId_Thread_2 = run Thread_2()
+  while (True):
+    $ 1 "Robot Program"
+    $ 2 "IS_HOME? False "
+    global IS_HOME=  False  
+    $ 3 "ProgramID?-1"
+    global ProgramID=-1
+    $ 4 "Set CO[6]=On"
+    set_configurable_digital_out(6, True)
+    $ 5 "Set CO[7]=On"
+    set_configurable_digital_out(7, True)
+    $ 6 "NUSIPYLIMO_EIL?0"
+    global NUSIPYLIMO_EIL=0
+    $ 7 "Set OFF_PEDALAS=On"
+    set_standard_digital_out(4, True)
+    $ 8 "NUSIPILA? False "
+    global NUSIPILA=  False  
+    $ 9 "boxstatus?''"
+    global boxstatus=""
+    $ 10 "sendboxstatus?''"
+    global sendboxstatus=""
+    $ 11 "VAR"
+    $ 12 "camera_IP?'192.168.0.100'"
+    global camera_IP="192.168.0.100"
+    $ 13 "portS?5023"
+    global portS=5023
+    $ 14 "portR?5024"
+    global portR=5024
+    $ 15 "conn? False "
+    global conn=  False  
+    $ 16 "cam_data_SERVER?[0,0,0,0,0]"
+    global cam_data_SERVER=[0,0,0,0,0]
+    $ 17 "program_red?'ss 0'"
+    global program_red="ss 0"
+    $ 18 "program_white?'ss 00'"
+    global program_white="ss 00"
+    $ 19 "MoveJ"
+    $ 20 "Waypointhome"
+    movej([4.059577941894531, -0.23886615434755498, -0.695719067250387, -0.7666133085833948, 1.3736262321472168, -4.05006987253298], a=1.3962634015954636, v=1.0471975511965976)
+    $ 21 "Loop"
+    while (True):
+      $ 22 "IS_HOME? True "
+      global IS_HOME=  True  
+      $ 23 "VARTOTOJAS_HOME"
+      $ 24 "MoveJ"
+      $ 25 "HOME"
+      movej([4.059589862823486, -0.23892623582948858, -0.6957071463214319, -0.7666257063495081, 1.3734469413757324, -4.050081793461935], a=1.3962634015954636, v=1.0471975511965976)
+      $ 26 "IS_HOME? True "
+      global IS_HOME=  True  
+      $ 27 "Set ALERM=On"
+      set_standard_digital_out(1, True)
+      $ 28 "Wait: 0.3"
+      sleep(0.3)
+      $ 29 "Set ALERM=Off"
+      set_standard_digital_out(1, False)
+      $ 30 "CONNECT"
+      $ 31 "CONNECT"
+      $ 32 "STATUSAS?'Ieskoma kamera'"
+      global STATUSAS="Ieskoma kamera"
+      $ 33 "cam_TRY?10"
+      global cam_TRY=10
+      $ 34 "cam_TRY2?10"
+      global cam_TRY2=10
+      $ 35 "open?socket_open(camera_IP,portS, 'T')"
+      global open=socket_open(camera_IP,portS, "T")
+      $ 36 "Loop open? False  and cam_TRY>0"
+      while (open ==   False    and  cam_TRY>0):
+        $ 37 "open?socket_open(camera_IP,portS, 'T')"
+        global open=socket_open(camera_IP,portS, "T")
+        $ 38 "cam_TRY?cam_TRY-1"
+        global cam_TRY=cam_TRY-1
+        $ 39 "Wait: 0.5"
+        sleep(0.5)
+      end
+      $ 40 "openR?socket_open(camera_IP,portR, 'R')"
+      global openR=socket_open(camera_IP,portR, "R")
+      $ 41 "Loop openR? False  and cam_TRY2>0"
+      while (openR ==   False    and  cam_TRY2>0):
+        $ 42 "openR?socket_open(camera_IP,portR, 'R')"
+        global openR=socket_open(camera_IP,portR, "R")
+        $ 43 "cam_TRY2?cam_TRY2-1"
+        global cam_TRY2=cam_TRY2-1
+        $ 44 "Wait: 0.5"
+        sleep(0.5)
+      end
+      $ 45 "If open? False  or openR? False "
+      if (open ==   False    or  openR ==   False  ):
+        $ 46 "STATUSAS?'Perkraunamas tinklas ir kamera'"
+        global STATUSAS="Perkraunamas tinklas ir kamera"
+        $ 47 "var_1?socket_close('T')"
+        global var_1=socket_close("T")
+        $ 48 "var_1?socket_close('R')"
+        global var_1=socket_close("R")
+        $ 49 "Set kamera=Off"
+        set_standard_digital_out(2, False)
+        $ 50 "Set ROUTER_off=On"
+        set_standard_digital_out(6, True)
+        $ 51 "Wait: 3.0"
+        sleep(3.0)
+        $ 52 "Set ROUTER_off=Off"
+        set_standard_digital_out(6, False)
+        $ 53 "Wait: 15.0"
+        sleep(15.0)
+        $ 54 "Set kamera=On"
+        set_standard_digital_out(2, True)
+        $ 55 "Wait: 30.0"
+        sleep(30.0)
+      end
+      $ 56 "SET_PROGRAM"
+      $ 57 "socket_send_line(program_red, 'T')"
+      socket_send_line(program_red, "T")
+      $ 58 "Wait: 2.0"
+      sleep(2.0)
+      $ 59 "var_1?socket_close('T')"
+      global var_1=socket_close("T")
+      $ 60 "var_1?socket_close('R')"
+      global var_1=socket_close("R")
+      $ 61 "PC"
+      $ 62 "STATUSAS?'Laukiama vartotojo veiksmo'"
+      global STATUSAS="Laukiama vartotojo veiksmo"
+      $ 63 "Wait connected? True "
+      while (not(connected ==   True  )):
+        sync()
+      end
+      $ 64 "Wait box1_ready? True  or box2_ready? True "
+      while (not(box1_ready ==   True    or  box2_ready ==   True  )):
+        sync()
+      end
+      $ 65 "If box1_ready? True "
+      if (box1_ready ==   True  ):
+        $ 66 "Set CO[7]=Off"
+        set_configurable_digital_out(7, False)
+        $ 67 "Wait: 0.3"
+        sleep(0.3)
+        $ 68 "Set CO[6]=On"
+        set_configurable_digital_out(6, True)
+        $ 69 "started_fill_ms? True "
+        global started_fill_ms=  True  
+        $ 70 "running_box?1"
+        global running_box=1
+        $ 71 "kiekis?box1_q"
+        global kiekis=box1_q
+        $ 72 "box1_ready? False "
+        global box1_ready=  False  
+        $ 73 "boxstatus?'1'"
+        global boxstatus="1"
+      else:
+        $ 74 "ElseIf box2_ready? True "
+        if (box2_ready ==   True  ):
+          $ 75 "Set CO[6]=Off"
+          set_configurable_digital_out(6, False)
+          $ 76 "Wait: 0.3"
+          sleep(0.3)
+          $ 77 "Set CO[7]=On"
+          set_configurable_digital_out(7, True)
+          $ 78 "started_fill_ms? True "
+          global started_fill_ms=  True  
+          $ 79 "running_box?2"
+          global running_box=2
+          $ 80 "kiekis?box2_q"
+          global kiekis=box2_q
+          $ 81 "box2_ready? False "
+          global box2_ready=  False  
+          $ 82 "boxstatus?'2'"
+          global boxstatus="2"
+        end
+      end
+      $ 83 "STATUSAS?'Keiciama padetis'"
+      global STATUSAS="Keiciama padetis"
+      $ 84 "Wait: 1.0"
+      sleep(1.0)
+      $ 85 "Wait CI[6]=LO"
+      while (get_configurable_digital_in(6) == True):
+        sync()
+      end
+      $ 86 "Wait: 1.0"
+      sleep(1.0)
+      $ 87 "Wait CI[6]=LO"
+      while (get_configurable_digital_in(6) == True):
+        sync()
+      end
+      $ 88 "IS_HOME? False "
+      global IS_HOME=  False  
+      $ 89 "Wait PILA=LO"
+      while (get_standard_digital_in(0) == True):
+        sync()
+      end
+      $ 90 "Wait NUSIPILA? True "
+      while (not(NUSIPILA !=   True  )):
+        sync()
+      end
+      $ 91 "Wait: 3.0"
+      sleep(3.0)
+      $ 92 "Wait PILA=LO"
+      while (get_standard_digital_in(0) == True):
+        sync()
+      end
+      $ 93 "NUSIPYLIMO_EIL?0"
+      global NUSIPYLIMO_EIL=0
+      $ 94 "If ProgramID?0"
+      if (ProgramID == 0):
+        $ 95 "STATUSAS?'Programa VC12'"
+        global STATUSAS="Programa VC12"
+        $ 96 "VC12"
+        $ 97 "SE_UP"
+        $ 98 "If  False ? True "
+        if (  False   ==   True  ):
+          $ 99 "POSITION_SET"
+          $ 100 "MoveL"
+          $ 101 "START_1"
+          movel([3.3461995124816895, -0.3476365248309534, -1.632474724446432, 0.2117537260055542, 1.5106351375579834, -3.337876621876852], a=1.2, v=0.25)
+          $ 102 "END_1"
+          movel([1.919594645500183, -0.3474329153644007, -1.5066826979266565, 0.19382119178771973, 1.7581738233566284, -1.9259331862079065], a=1.2, v=0.25)
+          $ 103 "START_2"
+          movel([0.36602482199668884, -0.31864864030946904, -1.5581181685077112, 0.11157917976379395, 1.5014219284057617, -3.5092507044421595], a=1.2, v=0.25)
+          $ 104 "END_2"
+          movel([-1.1836875120746058, -0.39678985277284795, -1.582911793385641, 0.334226131439209, 1.764879822731018, -1.9733226935016077], a=1.2, v=0.25)
+          $ 105 "TARGET_1"
+          movel([3.467092990875244, -0.5632346312152308, -1.6126235167132776, 0.41588330268859863, 1.487918734550476, -3.4567533175097864], a=1.2, v=0.25)
+          $ 106 "TARGET_2"
+          movel([0.48884403705596924, -0.5019725004779261, -1.5533679167376917, 0.29990673065185547, 1.4785743951797485, -3.630141083394186], a=1.2, v=0.25)
+          $ 107 "PREPARE1"
+          movel([3.4301133155822754, -0.4877274672137659, -1.6932151953326624, 0.418124794960022, 1.494837760925293, -3.4200950304614466], a=1.2, v=0.25)
+          $ 108 "PREPARE2"
+          movel([0.38857313990592957, -0.36140567461122686, -1.578641716633932, 0.08079731464385986, 1.4527881145477295, -3.520498577748434], a=1.2, v=0.25)
+        end
+        $ 109 "CONNECT"
+        $ 110 "CONNECT"
+        $ 111 "cam_TRY?10"
+        global cam_TRY=10
+        $ 112 "cam_TRY2?10"
+        global cam_TRY2=10
+        $ 113 "open?socket_open(camera_IP,portS, 'T')"
+        global open=socket_open(camera_IP,portS, "T")
+        $ 114 "Loop open? False  and cam_TRY>0"
+        while (open ==   False    and  cam_TRY>0):
+          $ 115 "open?socket_open(camera_IP,portS, 'T')"
+          global open=socket_open(camera_IP,portS, "T")
+          $ 116 "cam_TRY?cam_TRY-1"
+          global cam_TRY=cam_TRY-1
+          $ 117 "Wait: 0.5"
+          sleep(0.5)
+        end
+        $ 118 "openR?socket_open(camera_IP,portR, 'R')"
+        global openR=socket_open(camera_IP,portR, "R")
+        $ 119 "Loop openR? False  and cam_TRY2>0"
+        while (openR ==   False    and  cam_TRY2>0):
+          $ 120 "openR?socket_open(camera_IP,portR, 'R')"
+          global openR=socket_open(camera_IP,portR, "R")
+          $ 121 "cam_TRY2?cam_TRY2-1"
+          global cam_TRY2=cam_TRY2-1
+          $ 122 "Wait: 0.5"
+          sleep(0.5)
+        end
+        $ 123 "If open? False  or openR? False "
+        if (open ==   False    or  openR ==   False  ):
+          $ 124 "var_1?socket_close('T')"
+          global var_1=socket_close("T")
+          $ 125 "var_1?socket_close('R')"
+          global var_1=socket_close("R")
+          $ 126 "Set kamera=Off"
+          set_standard_digital_out(2, False)
+          $ 127 "Set ROUTER_off=On"
+          set_standard_digital_out(6, True)
+          $ 128 "Wait: 3.0"
+          sleep(3.0)
+          $ 129 "Set ROUTER_off=Off"
+          set_standard_digital_out(6, False)
+          $ 130 "Wait: 15.0"
+          sleep(15.0)
+          $ 131 "Set kamera=On"
+          set_standard_digital_out(2, True)
+          $ 132 "Wait: 30.0"
+          sleep(30.0)
+        end
+        $ 133 "SET_PROGRAM"
+        $ 134 "socket_send_line(program_red, 'T')"
+        socket_send_line(program_red, "T")
+        $ 135 "Wait: 2.0"
+        sleep(2.0)
+        $ 136 "var_1?socket_close('T')"
+        global var_1=socket_close("T")
+        $ 137 "var_1?socket_close('R')"
+        global var_1=socket_close("R")
+        $ 138 "NEXT_POSITION1? START_1"
+        global NEXT_POSITION1= p[.232714819177, .157190164613, .714956483345, .146295028470, -.177579253100, -1.560492293928]
+        $ 139 "kiekis_EILEJE?12"
+        global kiekis_EILEJE=12
+        $ 140 "NEXT_TARGET?TARGET_1"
+        global NEXT_TARGET=p[.156102365644, .161116292873, .741059383063, .146588303546, -.177632339525, -1.560566347455]
+        $ 141 "NEXT_PREPARE?PREPARE1"
+        global NEXT_PREPARE=p[.169930060255, .158853951469, .724757741571, .146415523388, -.177690626097, -1.560471650394]
+        $ 142 "GAP_1?interpolate_pose(START_1,END_1,(1/(kiekis_EILEJE-1)))"
+        global GAP_1=interpolate_pose(p[.232714819177, .157190164613, .714956483345, .146295028470, -.177579253100, -1.560492293928],p[.225324549152, -.199586963900, .714942828040, .146249177439, -.177422449826, -1.560601714860],(1/(kiekis_EILEJE-1)))
+        $ 143 "GAP_1?pose_sub(START_1,GAP_1)"
+        global GAP_1=pose_sub(p[.232714819177, .157190164613, .714956483345, .146295028470, -.177579253100, -1.560492293928],GAP_1)
+        $ 144 "CAM_DATA?[52.1,35.11]"
+        global CAM_DATA=[52.1,35.11]
+        $ 145 "up?p[0,0,-0.005,0,0,0]"
+        global up=p[0,0,-0.005,0,0,0]
+        $ 146 "GAP_2?interpolate_pose(START_2,END_2,(1/(kiekis_EILEJE-1)))"
+        global GAP_2=interpolate_pose(p[-.226231301260, -.188341883020, .715713899088, .158447408467, .166402943801, 1.558325239652],p[-.221470003831, .171979419327, .715724118587, .158472397068, .166439029451, 1.558325913463],(1/(kiekis_EILEJE-1)))
+        $ 147 "GAP_2?pose_sub(START_2,GAP_2)"
+        global GAP_2=pose_sub(p[-.226231301260, -.188341883020, .715713899088, .158447408467, .166402943801, 1.558325239652],GAP_2)
+        $ 148 "CAM_DATA_2?[43.18,36.8]"
+        global CAM_DATA_2=[43.18,36.8]
+        $ 149 "MoveJ"
+        $ 150 "pradinis_taskas"
+        movej([3.658179597457675, 0.149264654890362, -1.4248871757822776, -0.49905795162095856, 1.4449623949215322, -3.646990267969893], a=1.3962634015954636, v=1.0471975511965976, r=0.05)
+        $ 151 "SET_LINE_AMOUNT"
+        $ 152 "If kiekis>12"
+        if (kiekis>12):
+          $ 153 "loop1?12"
+          global loop1=12
+        else:
+          $ 154 "Else"
+          $ 155 "loop1?kiekis"
+          global loop1=kiekis
+        end
+        $ 156 "Loop loop1>0"
+        while (loop1>0):
+          $ 157 "loop1?loop1-1"
+          global loop1=loop1-1
+          $ 158 "PROC1"
+          $ 159 "MoveJ"
+          $ 160 "NEXT_POSITION1"
+          movej(NEXT_POSITION1, a=1.3962634015954636, v=1.0471975511965976)
+          $ 161 "TRY_TIMES?3"
+          global TRY_TIMES=3
+          $ 162 "GO_UP_TO_SCAN?p[0,0,0.00,0,0,0]"
+          global GO_UP_TO_SCAN=p[0,0,0.00,0,0,0]
+          $ 163 "Loop TRY_TIMES>0"
+          while (TRY_TIMES>0):
+            $ 164 "POSITION?pose_trans(Tool,GO_UP_TO_SCAN)"
+            global POSITION=pose_trans(get_forward_kin(),GO_UP_TO_SCAN)
+            $ 165 "MoveL"
+            $ 166 "POSITION"
+            movel(pose_trans(p[0.0,0.0,0.0,0.0,0.0,0.0], POSITION), a=0.5, v=0.08)
+            $ 167 "SCAN"
+            $ 168 "open? False "
+            global open=  False  
+            $ 169 "openR? False "
+            global openR=  False  
+            $ 170 "cam_data_SERVER?[0,0,0,0,0]"
+            global cam_data_SERVER=[0,0,0,0,0]
+            $ 171 "Loop openR? False  or open? False "
+            while (openR ==   False    or  open ==   False  ):
+              $ 172 "CONNECT"
+              $ 173 "cam_TRY?10"
+              global cam_TRY=10
+              $ 174 "cam_TRY2?10"
+              global cam_TRY2=10
+              $ 175 "open?socket_open(camera_IP,portS, 'T')"
+              global open=socket_open(camera_IP,portS, "T")
+              $ 176 "Loop open? False  and cam_TRY>0"
+              while (open ==   False    and  cam_TRY>0):
+                $ 177 "open?socket_open(camera_IP,portS,'T')"
+                global open=socket_open(camera_IP,portS,"T")
+                $ 178 "cam_TRY?cam_TRY-1"
+                global cam_TRY=cam_TRY-1
+                $ 179 "Wait: 0.5"
+                sleep(0.5)
+              end
+              $ 180 "openR?socket_open(camera_IP,portR, 'R')"
+              global openR=socket_open(camera_IP,portR, "R")
+              $ 181 "Loop openR? False  and cam_TRY2>0"
+              while (openR ==   False    and  cam_TRY2>0):
+                $ 182 "openR?socket_open(camera_IP,portR,'R')"
+                global openR=socket_open(camera_IP,portR,"R")
+                $ 183 "cam_TRY2?cam_TRY2-1"
+                global cam_TRY2=cam_TRY2-1
+                $ 184 "Wait: 0.5"
+                sleep(0.5)
+              end
+              $ 185 "If open? False  or openR? False "
+              if (open ==   False    or  openR ==   False  ):
+                $ 186 "var_1?socket_close('T')"
+                global var_1=socket_close("T")
+                $ 187 "var_1?socket_close('R')"
+                global var_1=socket_close("R")
+                $ 188 "Set kamera=Off"
+                set_standard_digital_out(2, False)
+                $ 189 "Set ROUTER_off=On"
+                set_standard_digital_out(6, True)
+                $ 190 "Wait: 3.0"
+                sleep(3.0)
+                $ 191 "Set ROUTER_off=Off"
+                set_standard_digital_out(6, False)
+                $ 192 "Wait: 15.0"
+                sleep(15.0)
+                $ 193 "Set kamera=On"
+                set_standard_digital_out(2, True)
+                $ 194 "Wait: 30.0"
+                sleep(30.0)
+              end
+            end
+            $ 195 "socket_send_line(program_red, 'T')"
+            socket_send_line(program_red, "T")
+            $ 196 "Set LED_R=On"
+            set_standard_digital_out(7, True)
+            $ 197 "Wait: 0.5"
+            sleep(0.5)
+            $ 198 "socket_send_line('gen', 'T')"
+            socket_send_line("gen", "T")
+            $ 199 "cam_data_SERVER?socket_read_ascii_float(4,'R')"
+            global cam_data_SERVER=socket_read_ascii_float(4,"R")
+            $ 200 "Wait: 0.3"
+            sleep(0.3)
+            $ 201 "If cam_data_SERVER[2]?0"
+            if (cam_data_SERVER[2] == 0):
+              $ 202 "Wait: 1.0"
+              sleep(1.0)
+              $ 203 "socket_send_line('gen', 'T')"
+              socket_send_line("gen", "T")
+              $ 204 "cam_data_SERVER?socket_read_ascii_float(4,'R')"
+              global cam_data_SERVER=socket_read_ascii_float(4,"R")
+            end
+            $ 205 "If cam_data_SERVER[1]?0"
+            if (cam_data_SERVER[1] == 0):
+              $ 206 "Wait: 1.0"
+              sleep(1.0)
+              $ 207 "socket_send_line('gen', 'T')"
+              socket_send_line("gen", "T")
+              $ 208 "cam_data_SERVER?socket_read_ascii_float(4,'R')"
+              global cam_data_SERVER=socket_read_ascii_float(4,"R")
+            end
+            $ 209 "Set LED_R=Off"
+            set_standard_digital_out(7, False)
+            $ 210 "If cam_data_SERVER[1]?0"
+            if (cam_data_SERVER[1] == 0):
+              $ 211 "socket_send_line(program_white, 'T')"
+              socket_send_line(program_white, "T")
+              $ 212 "Set LED_W=On"
+              set_standard_digital_out(5, True)
+              $ 213 "Wait: 1.0"
+              sleep(1.0)
+              $ 214 "socket_send_line('gen', 'T')"
+              socket_send_line("gen", "T")
+              $ 215 "cam_data_SERVER?socket_read_ascii_float(4,'R')"
+              global cam_data_SERVER=socket_read_ascii_float(4,"R")
+            end
+            $ 216 "If cam_data_SERVER[1]?0"
+            if (cam_data_SERVER[1] == 0):
+              $ 217 "Wait: 1.0"
+              sleep(1.0)
+              $ 218 "socket_send_line('gen', 'T')"
+              socket_send_line("gen", "T")
+              $ 219 "cam_data_SERVER?socket_read_ascii_float(4,'R')"
+              global cam_data_SERVER=socket_read_ascii_float(4,"R")
+            end
+            $ 220 "Set LED_W=Off"
+            set_standard_digital_out(5, False)
+            $ 221 "var_1?socket_close('T')"
+            global var_1=socket_close("T")
+            $ 222 "var_1?socket_close('R')"
+            global var_1=socket_close("R")
+            $ 223 "Wait: 0"
+            $ 224 "If cam_data_SERVER[3]>50"
+            if (cam_data_SERVER[3]>50):
+              $ 225 "TRY_TIMES?0"
+              global TRY_TIMES=0
+              $ 226 "MOVE"
+              $ 227 "X?cam_data_SERVER[1]-CAM_DATA[0]"
+              global X=cam_data_SERVER[1]-CAM_DATA[0]
+              $ 228 "Y?cam_data_SERVER[2]-CAM_DATA[1]"
+              global Y=cam_data_SERVER[2]-CAM_DATA[1]
+              $ 229 "Z?0"
+              global Z=0
+              $ 230 "If cam_data_SERVER[4]>0"
+              if (cam_data_SERVER[4]>0):
+                $ 231 "Z?cam_data_SERVER[4]"
+                global Z=cam_data_SERVER[4]
+              end
+              $ 232 "TRANS?p[-X/1000, -Y/1000, -Z/150, 0,0,0]"
+              global TRANS=p[-X/1000, -Y/1000, -Z/150, 0,0,0]
+              $ 233 "POSITION?pose_trans(NEXT_TARGET,TRANS)"
+              global POSITION=pose_trans(NEXT_TARGET,TRANS)
+              $ 234 "POSITION?pose_trans(POSITION,GO_UP_TO_SCAN)"
+              global POSITION=pose_trans(POSITION,GO_UP_TO_SCAN)
+              $ 235 "MoveL"
+              $ 236 "NEXT_PREPARE"
+              movel(pose_trans(p[0.0,0.0,0.0,0.0,0.0,0.0], NEXT_PREPARE), a=0.2, v=0.15)
+              $ 237 "POSITION"
+              movel(pose_trans(p[0.0,0.0,0.0,0.0,0.0,0.0], POSITION), a=0.2, v=0.15)
+              $ 238 "PILA"
+              $ 239 "Set OFF_PEDALAS=On"
+              set_standard_digital_out(4, True)
+              $ 240 "Set PILTI=On"
+              set_standard_digital_out(0, True)
+              $ 241 "Wait: 0.1"
+              sleep(0.1)
+              $ 242 "Set PILTI=Off"
+              set_standard_digital_out(0, False)
+              $ 243 "Wait: 1.0"
+              sleep(1.0)
+              $ 244 "Wait PILA=LO"
+              while (get_standard_digital_in(0) == True):
+                sync()
+              end
+              $ 245 "Wait: 2.0"
+              sleep(2.0)
+              $ 246 "POSITION?pose_trans(Tool,up)"
+              global POSITION=pose_trans(get_forward_kin(),up)
+              $ 247 "MoveL"
+              $ 248 "POSITION"
+              movel(pose_trans(p[0.0,0.0,0.0,0.0,0.0,0.0], POSITION), a=1.2, v=0.25)
+              $ 249 "boxstatus?boxstatus+'1'"
+              global boxstatus=boxstatus+"1"
+            else:
+              $ 250 "Else"
+              $ 251 "GO_UP_TO_SCAN?pose_sub(GO_UP_TO_SCAN,p[0,0,0.005,0,0,0])"
+              global GO_UP_TO_SCAN=pose_sub(GO_UP_TO_SCAN,p[0,0,0.005,0,0,0])
+              $ 252 "TRY_TIMES?TRY_TIMES-1"
+              global TRY_TIMES=TRY_TIMES-1
+              $ 253 "Wait: 0.5"
+              sleep(0.5)
+              $ 254 "If TRY_TIMES=0"
+              if (TRY_TIMES <= 0):
+                $ 255 "boxstatus?boxstatus+'2'"
+                global boxstatus=boxstatus+"2"
+                $ 256 "Set ALERM=On"
+                set_standard_digital_out(1, True)
+                $ 257 "Wait: 0.2"
+                sleep(0.2)
+                $ 258 "Set ALERM=Off"
+                set_standard_digital_out(1, False)
+              end
+            end
+          end
+          $ 259 "CALCULATE_NEXT"
+          $ 260 "NEXT_POSITION1?pose_sub(NEXT_POSITION1,GAP_1)"
+          global NEXT_POSITION1=pose_sub(NEXT_POSITION1,GAP_1)
+          $ 261 "NEXT_PREPARE?pose_sub(NEXT_PREPARE,GAP_1)"
+          global NEXT_PREPARE=pose_sub(NEXT_PREPARE,GAP_1)
+          $ 262 "NEXT_TARGET?pose_sub(NEXT_TARGET,GAP_1)"
+          global NEXT_TARGET=pose_sub(NEXT_TARGET,GAP_1)
+        end
+        $ 263 "If kiekis>12"
+        if (kiekis>12):
+          $ 264 "ROTATE"
+          $ 265 "MoveJ"
+          $ 266 "Waypoint_2"
+          movej([1.9212160871800172, -0.032110517201624944, -1.6613083820463004, 0.03144382527506373, 1.7927498678800617, -1.932834092954856], a=1.3962634015954636, v=1.0471975511965976, r=0.05)
+          $ 267 "Waypoint_3"
+          movej([0.7361547240980064, -0.032110517201624944, -1.6613083820463004, 0.031443825275063765, 1.641413867880062, -3.212034092954857], a=1.3962634015954636, v=1.0471975511965976, r=0.05)
+          $ 268 "Waypoint_4"
+          movej([0.4907963907510013, -0.12940547252179613, -1.8633449294614408, 0.18446284612559743, 1.4999908905509987, -3.600044155751935], a=1.3962634015954636, v=1.0471975511965976)
+          $ 269 "NEXT_POSITION1?START_2"
+          global NEXT_POSITION1=p[-.226231301260, -.188341883020, .715713899088, .158447408467, .166402943801, 1.558325239652]
+          $ 270 "NEXT_TARGET?TARGET_2"
+          global NEXT_TARGET=p[-.154318300144, -.185840899164, .741117601404, .158624866593, .166474286822, 1.558317956377]
+          $ 271 "NEXT_PREPARE?PREPARE2"
+          global NEXT_PREPARE=p[-.176833961685, -.187473268704, .730804986817, .245302782197, .243979677800, 1.551458183280]
+          $ 272 "loop1?kiekis-12"
+          global loop1=kiekis-12
+          $ 273 "Loop loop1"
+          while (loop1):
+            $ 274 "loop1?loop1-1"
+            global loop1=loop1-1
+            $ 275 "PROC1"
+            $ 276 "MoveJ"
+            $ 277 "NEXT_POSITION1"
+            movej(NEXT_POSITION1, a=1.3962634015954636, v=1.0471975511965976)
+            $ 278 "TRY_TIMES?3"
+            global TRY_TIMES=3
+            $ 279 "GO_UP_TO_SCAN?p[0,0,0.00,0,0,0]"
+            global GO_UP_TO_SCAN=p[0,0,0.00,0,0,0]
+            $ 280 "Loop TRY_TIMES>0"
+            while (TRY_TIMES>0):
+              $ 281 "POSITION?pose_trans(Tool,GO_UP_TO_SCAN)"
+              global POSITION=pose_trans(get_forward_kin(),GO_UP_TO_SCAN)
+              $ 282 "MoveL"
+              $ 283 "POSITION"
+              movel(pose_trans(p[0.0,0.0,0.0,0.0,0.0,0.0], POSITION), a=0.5, v=0.08)
+              $ 284 "SCAN"
+              $ 285 "open? False "
+              global open=  False  
+              $ 286 "openR? False "
+              global openR=  False  
+              $ 287 "cam_data_SERVER?[0,0,0,0,0]"
+              global cam_data_SERVER=[0,0,0,0,0]
+              $ 288 "Loop openR? False  or open? False "
+              while (openR ==   False    or  open ==   False  ):
+                $ 289 "CONNECT"
+                $ 290 "cam_TRY?10"
+                global cam_TRY=10
+                $ 291 "cam_TRY2?10"
+                global cam_TRY2=10
+                $ 292 "open?socket_open(camera_IP,portS, 'T')"
+                global open=socket_open(camera_IP,portS, "T")
+                $ 293 "Loop open? False  and cam_TRY>0"
+                while (open ==   False    and  cam_TRY>0):
+                  $ 294 "open?socket_open(camera_IP,portS,'T')"
+                  global open=socket_open(camera_IP,portS,"T")
+                  $ 295 "cam_TRY?cam_TRY-1"
+                  global cam_TRY=cam_TRY-1
+                  $ 296 "Wait: 0.5"
+                  sleep(0.5)
+                end
+                $ 297 "openR?socket_open(camera_IP,portR, 'R')"
+                global openR=socket_open(camera_IP,portR, "R")
+                $ 298 "Loop openR? False  and cam_TRY2>0"
+                while (openR ==   False    and  cam_TRY2>0):
+                  $ 299 "openR?socket_open(camera_IP,portR,'R')"
+                  global openR=socket_open(camera_IP,portR,"R")
+                  $ 300 "cam_TRY2?cam_TRY2-1"
+                  global cam_TRY2=cam_TRY2-1
+                  $ 301 "Wait: 0.5"
+                  sleep(0.5)
+                end
+                $ 302 "If open? False  or openR? False "
+                if (open ==   False    or  openR ==   False  ):
+                  $ 303 "var_1?socket_close('T')"
+                  global var_1=socket_close("T")
+                  $ 304 "var_1?socket_close('R')"
+                  global var_1=socket_close("R")
+                  $ 305 "Set kamera=Off"
+                  set_standard_digital_out(2, False)
+                  $ 306 "Set ROUTER_off=On"
+                  set_standard_digital_out(6, True)
+                  $ 307 "Wait: 3.0"
+                  sleep(3.0)
+                  $ 308 "Set ROUTER_off=Off"
+                  set_standard_digital_out(6, False)
+                  $ 309 "Wait: 15.0"
+                  sleep(15.0)
+                  $ 310 "Set kamera=On"
+                  set_standard_digital_out(2, True)
+                  $ 311 "Wait: 30.0"
+                  sleep(30.0)
+                end
+              end
+              $ 312 "socket_send_line(program_red, 'T')"
+              socket_send_line(program_red, "T")
+              $ 313 "Set LED_R=On"
+              set_standard_digital_out(7, True)
+              $ 314 "Wait: 0.5"
+              sleep(0.5)
+              $ 315 "socket_send_line('gen', 'T')"
+              socket_send_line("gen", "T")
+              $ 316 "cam_data_SERVER?socket_read_ascii_float(4,'R')"
+              global cam_data_SERVER=socket_read_ascii_float(4,"R")
+              $ 317 "Wait: 0.3"
+              sleep(0.3)
+              $ 318 "If cam_data_SERVER[2]?0"
+              if (cam_data_SERVER[2] == 0):
+                $ 319 "Wait: 1.0"
+                sleep(1.0)
+                $ 320 "socket_send_line('gen', 'T')"
+                socket_send_line("gen", "T")
+                $ 321 "cam_data_SERVER?socket_read_ascii_float(4,'R')"
+                global cam_data_SERVER=socket_read_ascii_float(4,"R")
+              end
+              $ 322 "If cam_data_SERVER[1]?0"
+              if (cam_data_SERVER[1] == 0):
+                $ 323 "Wait: 1.0"
+                sleep(1.0)
+                $ 324 "socket_send_line('gen', 'T')"
+                socket_send_line("gen", "T")
+                $ 325 "cam_data_SERVER?socket_read_ascii_float(4,'R')"
+                global cam_data_SERVER=socket_read_ascii_float(4,"R")
+              end
+              $ 326 "Set LED_R=Off"
+              set_standard_digital_out(7, False)
+              $ 327 "If cam_data_SERVER[1]?0"
+              if (cam_data_SERVER[1] == 0):
+                $ 328 "socket_send_line(program_white, 'T')"
+                socket_send_line(program_white, "T")
+                $ 329 "Set LED_W=On"
+                set_standard_digital_out(5, True)
+                $ 330 "Wait: 1.0"
+                sleep(1.0)
+                $ 331 "socket_send_line('gen', 'T')"
+                socket_send_line("gen", "T")
+                $ 332 "cam_data_SERVER?socket_read_ascii_float(4,'R')"
+                global cam_data_SERVER=socket_read_ascii_float(4,"R")
+              end
+              $ 333 "If cam_data_SERVER[1]?0"
+              if (cam_data_SERVER[1] == 0):
+                $ 334 "Wait: 1.0"
+                sleep(1.0)
+                $ 335 "socket_send_line('gen', 'T')"
+                socket_send_line("gen", "T")
+                $ 336 "cam_data_SERVER?socket_read_ascii_float(4,'R')"
+                global cam_data_SERVER=socket_read_ascii_float(4,"R")
+              end
+              $ 337 "Set LED_W=Off"
+              set_standard_digital_out(5, False)
+              $ 338 "var_1?socket_close('T')"
+              global var_1=socket_close("T")
+              $ 339 "var_1?socket_close('R')"
+              global var_1=socket_close("R")
+              $ 340 "Wait: 0"
+              $ 341 "If cam_data_SERVER[3]>50"
+              if (cam_data_SERVER[3]>50):
+                $ 342 "TRY_TIMES?0"
+                global TRY_TIMES=0
+                $ 343 "MOVE"
+                $ 344 "X?cam_data_SERVER[1]-CAM_DATA_2[0]"
+                global X=cam_data_SERVER[1]-CAM_DATA_2[0]
+                $ 345 "Y?cam_data_SERVER[2]-CAM_DATA_2[1]"
+                global Y=cam_data_SERVER[2]-CAM_DATA_2[1]
+                $ 346 "Z?0"
+                global Z=0
+                $ 347 "If cam_data_SERVER[4]>0"
+                if (cam_data_SERVER[4]>0):
+                  $ 348 "Z?cam_data_SERVER[4]"
+                  global Z=cam_data_SERVER[4]
+                end
+                $ 349 "TRANS?p[-X/1000, -Y/1000, -Z/150, 0,0,0]"
+                global TRANS=p[-X/1000, -Y/1000, -Z/150, 0,0,0]
+                $ 350 "POSITION?pose_trans(NEXT_TARGET,TRANS)"
+                global POSITION=pose_trans(NEXT_TARGET,TRANS)
+                $ 351 "POSITION?pose_trans(POSITION,GO_UP_TO_SCAN)"
+                global POSITION=pose_trans(POSITION,GO_UP_TO_SCAN)
+                $ 352 "MoveL"
+                $ 353 "NEXT_PREPARE"
+                movel(pose_trans(p[0.0,0.0,0.0,0.0,0.0,0.0], NEXT_PREPARE), a=0.2, v=0.15)
+                $ 354 "POSITION"
+                movel(pose_trans(p[0.0,0.0,0.0,0.0,0.0,0.0], POSITION), a=0.2, v=0.15)
+                $ 355 "PILA"
+                $ 356 "Set OFF_PEDALAS=On"
+                set_standard_digital_out(4, True)
+                $ 357 "Set PILTI=On"
+                set_standard_digital_out(0, True)
+                $ 358 "Wait: 0.1"
+                sleep(0.1)
+                $ 359 "Set PILTI=Off"
+                set_standard_digital_out(0, False)
+                $ 360 "Wait: 1.0"
+                sleep(1.0)
+                $ 361 "Wait PILA=LO"
+                while (get_standard_digital_in(0) == True):
+                  sync()
+                end
+                $ 362 "Wait: 2.0"
+                sleep(2.0)
+                $ 363 "POSITION?pose_trans(Tool,up)"
+                global POSITION=pose_trans(get_forward_kin(),up)
+                $ 364 "MoveL"
+                $ 365 "POSITION"
+                movel(pose_trans(p[0.0,0.0,0.0,0.0,0.0,0.0], POSITION), a=1.2, v=0.25)
+              else:
+                $ 366 "Else"
+                $ 367 "GO_UP_TO_SCAN?pose_sub(GO_UP_TO_SCAN,p[0,0,0.005,0,0,0])"
+                global GO_UP_TO_SCAN=pose_sub(GO_UP_TO_SCAN,p[0,0,0.005,0,0,0])
+                $ 368 "TRY_TIMES?TRY_TIMES-1"
+                global TRY_TIMES=TRY_TIMES-1
+                $ 369 "Wait: 0.5"
+                sleep(0.5)
+                $ 370 "If TRY_TIMES=0"
+                if (TRY_TIMES <= 0):
+                  $ 371 "Set ALERM=On"
+                  set_standard_digital_out(1, True)
+                  $ 372 "Wait: 0.2"
+                  sleep(0.2)
+                  $ 373 "Set ALERM=Off"
+                  set_standard_digital_out(1, False)
+                end
+              end
+            end
+            $ 374 "CALCULATE_NEXT"
+            $ 375 "NEXT_POSITION1?pose_sub(NEXT_POSITION1,GAP_2)"
+            global NEXT_POSITION1=pose_sub(NEXT_POSITION1,GAP_2)
+            $ 376 "NEXT_PREPARE?pose_sub(NEXT_PREPARE,GAP_2)"
+            global NEXT_PREPARE=pose_sub(NEXT_PREPARE,GAP_2)
+            $ 377 "NEXT_TARGET?pose_sub(NEXT_TARGET,GAP_2)"
+            global NEXT_TARGET=pose_sub(NEXT_TARGET,GAP_2)
+          end
+          $ 378 "MoveJ"
+          $ 379 "Waypoint_5"
+          movej([-0.09196359315981084, -0.2730477491961878, -2.1974409262286585, 0.8071788549423218, 1.9521396160125732, -2.4104562441455286], a=1.3962634015954636, v=1.0471975511965976, r=0.05)
+          $ 380 "Waypoint_6"
+          movej([1.0364373922348022, 0.07960939407348633, -1.7523348967181605, 0.06021618843078613, 1.928870439529419, -3.10876709619631], a=1.3962634015954636, v=1.0471975511965976, r=0.05)
+          $ 381 "Waypoint_7"
+          movej([1.8054789304733276, 0.06312012672424316, -1.5492656866656702, -0.25625640550722295, 1.582539439201355, -3.11495811143984], a=1.3962634015954636, v=1.0471975511965976, r=0.05)
+          $ 382 "Waypoint_8"
+          movej([2.806763172149658, 0.03466367721557617, -1.9938648382769983, 0.17972445487976074, 1.5345590114593506, -3.2817755381213587], a=1.3962634015954636, v=1.0471975511965976, r=0.05)
+          $ 383 "HOME"
+          movej([4.059589862823486, -0.23892623582948858, -0.6957071463214319, -0.7666257063495081, 1.3734469413757324, -4.050081793461935], a=1.3962634015954636, v=1.0471975511965976)
+        else:
+          $ 384 "Else"
+          $ 385 "MoveJ"
+          $ 386 "Waypoint_1"
+          movej([2.9377137893475274, 0.21854499064247396, -2.033179063504872, 0.10228519325456986, 1.5876350088369353, -2.9352042094679014], a=1.3962634015954636, v=1.0471975511965976)
+        end
+        $ 387 "Wait: 0.5"
+        sleep(0.5)
+      else:
+        $ 388 "ElseIf ProgramID?1"
+        if (ProgramID == 1):
+          $ 389 "STATUSAS?'Programa Ragai'"
+          global STATUSAS="Programa Ragai"
+          $ 390 "program_red?'ss 12'"
+          global program_red="ss 12"
+          $ 391 "program_white?'ss 13'"
+          global program_white="ss 13"
+          $ 392 "socket_send_line(program_red, 'T')"
+          socket_send_line(program_red, "T")
+          $ 393 "RAGAI"
+          $ 394 "SE_UP"
+          $ 395 "If  False ? True "
+          if (  False   ==   True  ):
+            $ 396 "POSITION_SET"
+            $ 397 "MoveL"
+            $ 398 "START_1"
+            movel([3.3461995124816895, -0.3476365248309534, -1.632474724446432, 0.2117537260055542, 1.5106351375579834, -3.337876621876852], a=1.2, v=0.25)
+            $ 399 "END_1"
+            movel([1.919594645500183, -0.3474329153644007, -1.5066826979266565, 0.19382119178771973, 1.7581738233566284, -1.9259331862079065], a=1.2, v=0.25)
+            $ 400 "START_2"
+            movel([0.36602482199668884, -0.31864864030946904, -1.5581181685077112, 0.11157917976379395, 1.5014219284057617, -3.5092507044421595], a=1.2, v=0.25)
+            $ 401 "END_2"
+            movel([-1.1836875120746058, -0.39678985277284795, -1.582911793385641, 0.334226131439209, 1.764879822731018, -1.9733226935016077], a=1.2, v=0.25)
+            $ 402 "TARGET_1"
+            movel([3.467092990875244, -0.5632346312152308, -1.6126235167132776, 0.41588330268859863, 1.487918734550476, -3.4567533175097864], a=1.2, v=0.25)
+            $ 403 "TARGET_2"
+            movel([0.48884403705596924, -0.5019725004779261, -1.5533679167376917, 0.29990673065185547, 1.4785743951797485, -3.630141083394186], a=1.2, v=0.25)
+            $ 404 "PREPARE1"
+            movel([3.4301133155822754, -0.4877274672137659, -1.6932151953326624, 0.418124794960022, 1.494837760925293, -3.4200950304614466], a=1.2, v=0.25)
+            $ 405 "PREPARE2"
+            movel([0.38857313990592957, -0.36140567461122686, -1.578641716633932, 0.08079731464385986, 1.4527881145477295, -3.520498577748434], a=1.2, v=0.25)
+          end
+          $ 406 "CONNECT"
+          $ 407 "CONNECT"
+          $ 408 "cam_TRY?10"
+          global cam_TRY=10
+          $ 409 "cam_TRY2?10"
+          global cam_TRY2=10
+          $ 410 "open?socket_open(camera_IP,portS, 'T')"
+          global open=socket_open(camera_IP,portS, "T")
+          $ 411 "Loop open? False  and cam_TRY>0"
+          while (open ==   False    and  cam_TRY>0):
+            $ 412 "open?socket_open(camera_IP,portS, 'T')"
+            global open=socket_open(camera_IP,portS, "T")
+            $ 413 "cam_TRY?cam_TRY-1"
+            global cam_TRY=cam_TRY-1
+            $ 414 "Wait: 0.5"
+            sleep(0.5)
+          end
+          $ 415 "openR?socket_open(camera_IP,portR, 'R')"
+          global openR=socket_open(camera_IP,portR, "R")
+          $ 416 "Loop openR? False  and cam_TRY2>0"
+          while (openR ==   False    and  cam_TRY2>0):
+            $ 417 "openR?socket_open(camera_IP,portR, 'R')"
+            global openR=socket_open(camera_IP,portR, "R")
+            $ 418 "cam_TRY2?cam_TRY2-1"
+            global cam_TRY2=cam_TRY2-1
+            $ 419 "Wait: 0.5"
+            sleep(0.5)
+          end
+          $ 420 "If open? False  or openR? False "
+          if (open ==   False    or  openR ==   False  ):
+            $ 421 "var_1?socket_close('T')"
+            global var_1=socket_close("T")
+            $ 422 "var_1?socket_close('R')"
+            global var_1=socket_close("R")
+            $ 423 "Set kamera=Off"
+            set_standard_digital_out(2, False)
+            $ 424 "Set ROUTER_off=On"
+            set_standard_digital_out(6, True)
+            $ 425 "Wait: 3.0"
+            sleep(3.0)
+            $ 426 "Set ROUTER_off=Off"
+            set_standard_digital_out(6, False)
+            $ 427 "Wait: 15.0"
+            sleep(15.0)
+            $ 428 "Set kamera=On"
+            set_standard_digital_out(2, True)
+            $ 429 "Wait: 30.0"
+            sleep(30.0)
+          end
+          $ 430 "SET_PROGRAM"
+          $ 431 "socket_send_line(program_red, 'T')"
+          socket_send_line(program_red, "T")
+          $ 432 "Wait: 2.0"
+          sleep(2.0)
+          $ 433 "var_1?socket_close('T')"
+          global var_1=socket_close("T")
+          $ 434 "var_1?socket_close('R')"
+          global var_1=socket_close("R")
+          $ 435 "NEXT_POSITION1? START_1"
+          global NEXT_POSITION1= p[.232714819177, .157190164613, .714956483345, .146295028470, -.177579253100, -1.560492293928]
+          $ 436 "kiekis_EILEJE?10"
+          global kiekis_EILEJE=10
+          $ 437 "NEXT_TARGET?TARGET_1"
+          global NEXT_TARGET=p[.156102365644, .161116292873, .741059383063, .146588303546, -.177632339525, -1.560566347455]
+          $ 438 "NEXT_PREPARE?PREPARE1"
+          global NEXT_PREPARE=p[.169930060255, .158853951469, .724757741571, .146415523388, -.177690626097, -1.560471650394]
+          $ 439 "GAP_1?interpolate_pose(START_1,END_1,(1/(kiekis_EILEJE-1)))"
+          global GAP_1=interpolate_pose(p[.232714819177, .157190164613, .714956483345, .146295028470, -.177579253100, -1.560492293928],p[.225324549152, -.199586963900, .714942828040, .146249177439, -.177422449826, -1.560601714860],(1/(kiekis_EILEJE-1)))
+          $ 440 "GAP_1?pose_sub(START_1,GAP_1)"
+          global GAP_1=pose_sub(p[.232714819177, .157190164613, .714956483345, .146295028470, -.177579253100, -1.560492293928],GAP_1)
+          $ 441 "CAM_DATA?[54.75,48.21]"
+          global CAM_DATA=[54.75,48.21]
+          $ 442 "up?p[0,0,-0.005,0,0,0]"
+          global up=p[0,0,-0.005,0,0,0]
+          $ 443 "GAP_2?interpolate_pose(START_2,END_2,(1/(kiekis_EILEJE-1)))"
+          global GAP_2=interpolate_pose(p[-.226231301260, -.188341883020, .715713899088, .158447408467, .166402943801, 1.558325239652],p[-.221470003831, .171979419327, .715724118587, .158472397068, .166439029451, 1.558325913463],(1/(kiekis_EILEJE-1)))
+          $ 444 "GAP_2?pose_sub(START_2,GAP_2)"
+          global GAP_2=pose_sub(p[-.226231301260, -.188341883020, .715713899088, .158447408467, .166402943801, 1.558325239652],GAP_2)
+          $ 445 "CAM_DATA_2?[47.58,44.16]"
+          global CAM_DATA_2=[47.58,44.16]
+          $ 446 "MoveJ"
+          $ 447 "pradinis_taskas"
+          movej([3.658179597457675, 0.149264654890362, -1.4248871757822776, -0.49905795162095856, 1.4449623949215322, -3.646990267969893], a=1.3962634015954636, v=1.0471975511965976, r=0.05)
+          $ 448 "SET_LINE_AMOUNT"
+          $ 449 "If kiekis>10"
+          if (kiekis>10):
+            $ 450 "loop1?10"
+            global loop1=10
+          else:
+            $ 451 "Else"
+            $ 452 "loop1?kiekis"
+            global loop1=kiekis
+          end
+          $ 453 "Loop loop1>0"
+          while (loop1>0):
+            $ 454 "loop1?loop1-1"
+            global loop1=loop1-1
+            $ 455 "PROC1"
+            $ 456 "MoveJ"
+            $ 457 "NEXT_POSITION1"
+            movej(NEXT_POSITION1, a=1.3962634015954636, v=1.0471975511965976)
+            $ 458 "TRY_TIMES?3"
+            global TRY_TIMES=3
+            $ 459 "GO_UP_TO_SCAN?p[0,0,0.00,0,0,0]"
+            global GO_UP_TO_SCAN=p[0,0,0.00,0,0,0]
+            $ 460 "Loop TRY_TIMES>0"
+            while (TRY_TIMES>0):
+              $ 461 "POSITION?pose_trans(Tool,GO_UP_TO_SCAN)"
+              global POSITION=pose_trans(get_forward_kin(),GO_UP_TO_SCAN)
+              $ 462 "MoveL"
+              $ 463 "POSITION"
+              movel(pose_trans(p[0.0,0.0,0.0,0.0,0.0,0.0], POSITION), a=0.5, v=0.08)
+              $ 464 "SCAN"
+              $ 465 "open? False "
+              global open=  False  
+              $ 466 "openR? False "
+              global openR=  False  
+              $ 467 "cam_data_SERVER?[0,0,0,0,0]"
+              global cam_data_SERVER=[0,0,0,0,0]
+              $ 468 "Loop openR? False  or open? False "
+              while (openR ==   False    or  open ==   False  ):
+                $ 469 "CONNECT"
+                $ 470 "cam_TRY?10"
+                global cam_TRY=10
+                $ 471 "cam_TRY2?10"
+                global cam_TRY2=10
+                $ 472 "open?socket_open(camera_IP,portS, 'T')"
+                global open=socket_open(camera_IP,portS, "T")
+                $ 473 "Loop open? False  and cam_TRY>0"
+                while (open ==   False    and  cam_TRY>0):
+                  $ 474 "open?socket_open(camera_IP,portS,'T')"
+                  global open=socket_open(camera_IP,portS,"T")
+                  $ 475 "cam_TRY?cam_TRY-1"
+                  global cam_TRY=cam_TRY-1
+                  $ 476 "Wait: 0.5"
+                  sleep(0.5)
+                end
+                $ 477 "openR?socket_open(camera_IP,portR, 'R')"
+                global openR=socket_open(camera_IP,portR, "R")
+                $ 478 "Loop openR? False  and cam_TRY2>0"
+                while (openR ==   False    and  cam_TRY2>0):
+                  $ 479 "openR?socket_open(camera_IP,portR,'R')"
+                  global openR=socket_open(camera_IP,portR,"R")
+                  $ 480 "cam_TRY2?cam_TRY2-1"
+                  global cam_TRY2=cam_TRY2-1
+                  $ 481 "Wait: 0.5"
+                  sleep(0.5)
+                end
+                $ 482 "If open? False  or openR? False "
+                if (open ==   False    or  openR ==   False  ):
+                  $ 483 "var_1?socket_close('T')"
+                  global var_1=socket_close("T")
+                  $ 484 "var_1?socket_close('R')"
+                  global var_1=socket_close("R")
+                  $ 485 "Set kamera=Off"
+                  set_standard_digital_out(2, False)
+                  $ 486 "Set ROUTER_off=On"
+                  set_standard_digital_out(6, True)
+                  $ 487 "Wait: 3.0"
+                  sleep(3.0)
+                  $ 488 "Set ROUTER_off=Off"
+                  set_standard_digital_out(6, False)
+                  $ 489 "Wait: 15.0"
+                  sleep(15.0)
+                  $ 490 "Set kamera=On"
+                  set_standard_digital_out(2, True)
+                  $ 491 "Wait: 30.0"
+                  sleep(30.0)
+                end
+              end
+              $ 492 "socket_send_line(program_red, 'T')"
+              socket_send_line(program_red, "T")
+              $ 493 "Set LED_R=On"
+              set_standard_digital_out(7, True)
+              $ 494 "Wait: 0.5"
+              sleep(0.5)
+              $ 495 "socket_send_line('gen', 'T')"
+              socket_send_line("gen", "T")
+              $ 496 "cam_data_SERVER?socket_read_ascii_float(4,'R')"
+              global cam_data_SERVER=socket_read_ascii_float(4,"R")
+              $ 497 "Wait: 0.3"
+              sleep(0.3)
+              $ 498 "If cam_data_SERVER[2]?0"
+              if (cam_data_SERVER[2] == 0):
+                $ 499 "Wait: 1.0"
+                sleep(1.0)
+                $ 500 "socket_send_line('gen', 'T')"
+                socket_send_line("gen", "T")
+                $ 501 "cam_data_SERVER?socket_read_ascii_float(4,'R')"
+                global cam_data_SERVER=socket_read_ascii_float(4,"R")
+              end
+              $ 502 "If cam_data_SERVER[1]?0"
+              if (cam_data_SERVER[1] == 0):
+                $ 503 "Wait: 1.0"
+                sleep(1.0)
+                $ 504 "socket_send_line('gen', 'T')"
+                socket_send_line("gen", "T")
+                $ 505 "cam_data_SERVER?socket_read_ascii_float(4,'R')"
+                global cam_data_SERVER=socket_read_ascii_float(4,"R")
+              end
+              $ 506 "Set LED_R=Off"
+              set_standard_digital_out(7, False)
+              $ 507 "If cam_data_SERVER[1]?0"
+              if (cam_data_SERVER[1] == 0):
+                $ 508 "socket_send_line(program_white, 'T')"
+                socket_send_line(program_white, "T")
+                $ 509 "Set LED_W=On"
+                set_standard_digital_out(5, True)
+                $ 510 "Wait: 1.0"
+                sleep(1.0)
+                $ 511 "socket_send_line('gen', 'T')"
+                socket_send_line("gen", "T")
+                $ 512 "cam_data_SERVER?socket_read_ascii_float(4,'R')"
+                global cam_data_SERVER=socket_read_ascii_float(4,"R")
+              end
+              $ 513 "If cam_data_SERVER[1]?0"
+              if (cam_data_SERVER[1] == 0):
+                $ 514 "Wait: 1.0"
+                sleep(1.0)
+                $ 515 "socket_send_line('gen', 'T')"
+                socket_send_line("gen", "T")
+                $ 516 "cam_data_SERVER?socket_read_ascii_float(4,'R')"
+                global cam_data_SERVER=socket_read_ascii_float(4,"R")
+              end
+              $ 517 "Set LED_W=Off"
+              set_standard_digital_out(5, False)
+              $ 518 "var_1?socket_close('T')"
+              global var_1=socket_close("T")
+              $ 519 "var_1?socket_close('R')"
+              global var_1=socket_close("R")
+              $ 520 "Wait: 0"
+              $ 521 "If cam_data_SERVER[3]>50"
+              if (cam_data_SERVER[3]>50):
+                $ 522 "TRY_TIMES?0"
+                global TRY_TIMES=0
+                $ 523 "MOVE"
+                $ 524 "X?cam_data_SERVER[1]-CAM_DATA[0]"
+                global X=cam_data_SERVER[1]-CAM_DATA[0]
+                $ 525 "Y?cam_data_SERVER[2]-CAM_DATA[1]"
+                global Y=cam_data_SERVER[2]-CAM_DATA[1]
+                $ 526 "Z?0"
+                global Z=0
+                $ 527 "If cam_data_SERVER[4]>0"
+                if (cam_data_SERVER[4]>0):
+                  $ 528 "Z?cam_data_SERVER[4]"
+                  global Z=cam_data_SERVER[4]
+                end
+                $ 529 "TRANS?p[-X/1000, -Y/1000, -Z/150, 0,0,0]"
+                global TRANS=p[-X/1000, -Y/1000, -Z/150, 0,0,0]
+                $ 530 "POSITION?pose_trans(NEXT_TARGET,TRANS)"
+                global POSITION=pose_trans(NEXT_TARGET,TRANS)
+                $ 531 "POSITION?pose_trans(POSITION,GO_UP_TO_SCAN)"
+                global POSITION=pose_trans(POSITION,GO_UP_TO_SCAN)
+                $ 532 "MoveL"
+                $ 533 "NEXT_PREPARE"
+                movel(pose_trans(p[0.0,0.0,0.0,0.0,0.0,0.0], NEXT_PREPARE), a=0.2, v=0.15)
+                $ 534 "POSITION"
+                movel(pose_trans(p[0.0,0.0,0.0,0.0,0.0,0.0], POSITION), a=0.2, v=0.15)
+                $ 535 "PILA"
+                $ 536 "Set OFF_PEDALAS=On"
+                set_standard_digital_out(4, True)
+                $ 537 "Set PILTI=On"
+                set_standard_digital_out(0, True)
+                $ 538 "Wait: 0.1"
+                sleep(0.1)
+                $ 539 "Set PILTI=Off"
+                set_standard_digital_out(0, False)
+                $ 540 "Wait: 1.0"
+                sleep(1.0)
+                $ 541 "Wait PILA=LO"
+                while (get_standard_digital_in(0) == True):
+                  sync()
+                end
+                $ 542 "Wait: 2.0"
+                sleep(2.0)
+                $ 543 "POSITION?pose_trans(Tool,up)"
+                global POSITION=pose_trans(get_forward_kin(),up)
+                $ 544 "MoveL"
+                $ 545 "POSITION"
+                movel(pose_trans(p[0.0,0.0,0.0,0.0,0.0,0.0], POSITION), a=1.2, v=0.25)
+                $ 546 "boxstatus?boxstatus+'1'"
+                global boxstatus=boxstatus+"1"
+              else:
+                $ 547 "Else"
+                $ 548 "GO_UP_TO_SCAN?pose_sub(GO_UP_TO_SCAN,p[0,0,0.005,0,0,0])"
+                global GO_UP_TO_SCAN=pose_sub(GO_UP_TO_SCAN,p[0,0,0.005,0,0,0])
+                $ 549 "TRY_TIMES?TRY_TIMES-1"
+                global TRY_TIMES=TRY_TIMES-1
+                $ 550 "Wait: 0.5"
+                sleep(0.5)
+                $ 551 "If TRY_TIMES=0"
+                if (TRY_TIMES <= 0):
+                  $ 552 "boxstatus?boxstatus+'2'"
+                  global boxstatus=boxstatus+"2"
+                  $ 553 "Set ALERM=On"
+                  set_standard_digital_out(1, True)
+                  $ 554 "Wait: 0.2"
+                  sleep(0.2)
+                  $ 555 "Set ALERM=Off"
+                  set_standard_digital_out(1, False)
+                end
+              end
+            end
+            $ 556 "CALCULATE_NEXT"
+            $ 557 "NEXT_POSITION1?pose_sub(NEXT_POSITION1,GAP_1)"
+            global NEXT_POSITION1=pose_sub(NEXT_POSITION1,GAP_1)
+            $ 558 "NEXT_PREPARE?pose_sub(NEXT_PREPARE,GAP_1)"
+            global NEXT_PREPARE=pose_sub(NEXT_PREPARE,GAP_1)
+            $ 559 "NEXT_TARGET?pose_sub(NEXT_TARGET,GAP_1)"
+            global NEXT_TARGET=pose_sub(NEXT_TARGET,GAP_1)
+          end
+          $ 560 "If kiekis>10"
+          if (kiekis>10):
+            $ 561 "ROTATE"
+            $ 562 "MoveJ"
+            $ 563 "Waypoint_2"
+            movej([1.9212160871800172, -0.032110517201624944, -1.6613083820463004, 0.03144382527506373, 1.7927498678800617, -1.932834092954856], a=1.3962634015954636, v=1.0471975511965976, r=0.05)
+            $ 564 "Waypoint_3"
+            movej([0.7361547240980064, -0.032110517201624944, -1.6613083820463004, 0.031443825275063765, 1.641413867880062, -3.212034092954857], a=1.3962634015954636, v=1.0471975511965976, r=0.05)
+            $ 565 "Waypoint_4"
+            movej([0.4907963907510013, -0.12940547252179613, -1.8633449294614408, 0.18446284612559743, 1.4999908905509987, -3.600044155751935], a=1.3962634015954636, v=1.0471975511965976)
+            $ 566 "NEXT_POSITION1?START_2"
+            global NEXT_POSITION1=p[-.226231301260, -.188341883020, .715713899088, .158447408467, .166402943801, 1.558325239652]
+            $ 567 "NEXT_TARGET?TARGET_2"
+            global NEXT_TARGET=p[-.154318300144, -.185840899164, .741117601404, .158624866593, .166474286822, 1.558317956377]
+            $ 568 "NEXT_PREPARE?PREPARE2"
+            global NEXT_PREPARE=p[-.176833961685, -.187473268704, .730804986817, .245302782197, .243979677800, 1.551458183280]
+            $ 569 "loop1?kiekis-10"
+            global loop1=kiekis-10
+            $ 570 "Loop loop1"
+            while (loop1):
+              $ 571 "loop1?loop1-1"
+              global loop1=loop1-1
+              $ 572 "PROC1"
+              $ 573 "MoveJ"
+              $ 574 "NEXT_POSITION1"
+              movej(NEXT_POSITION1, a=1.3962634015954636, v=1.0471975511965976)
+              $ 575 "TRY_TIMES?3"
+              global TRY_TIMES=3
+              $ 576 "GO_UP_TO_SCAN?p[0,0,0.00,0,0,0]"
+              global GO_UP_TO_SCAN=p[0,0,0.00,0,0,0]
+              $ 577 "Loop TRY_TIMES>0"
+              while (TRY_TIMES>0):
+                $ 578 "POSITION?pose_trans(Tool,GO_UP_TO_SCAN)"
+                global POSITION=pose_trans(get_forward_kin(),GO_UP_TO_SCAN)
+                $ 579 "MoveL"
+                $ 580 "POSITION"
+                movel(pose_trans(p[0.0,0.0,0.0,0.0,0.0,0.0], POSITION), a=0.5, v=0.08)
+                $ 581 "SCAN"
+                $ 582 "open? False "
+                global open=  False  
+                $ 583 "openR? False "
+                global openR=  False  
+                $ 584 "cam_data_SERVER?[0,0,0,0,0]"
+                global cam_data_SERVER=[0,0,0,0,0]
+                $ 585 "Loop openR? False  or open? False "
+                while (openR ==   False    or  open ==   False  ):
+                  $ 586 "CONNECT"
+                  $ 587 "cam_TRY?10"
+                  global cam_TRY=10
+                  $ 588 "cam_TRY2?10"
+                  global cam_TRY2=10
+                  $ 589 "open?socket_open(camera_IP,portS, 'T')"
+                  global open=socket_open(camera_IP,portS, "T")
+                  $ 590 "Loop open? False  and cam_TRY>0"
+                  while (open ==   False    and  cam_TRY>0):
+                    $ 591 "open?socket_open(camera_IP,portS,'T')"
+                    global open=socket_open(camera_IP,portS,"T")
+                    $ 592 "cam_TRY?cam_TRY-1"
+                    global cam_TRY=cam_TRY-1
+                    $ 593 "Wait: 0.5"
+                    sleep(0.5)
+                  end
+                  $ 594 "openR?socket_open(camera_IP,portR, 'R')"
+                  global openR=socket_open(camera_IP,portR, "R")
+                  $ 595 "Loop openR? False  and cam_TRY2>0"
+                  while (openR ==   False    and  cam_TRY2>0):
+                    $ 596 "openR?socket_open(camera_IP,portR,'R')"
+                    global openR=socket_open(camera_IP,portR,"R")
+                    $ 597 "cam_TRY2?cam_TRY2-1"
+                    global cam_TRY2=cam_TRY2-1
+                    $ 598 "Wait: 0.5"
+                    sleep(0.5)
+                  end
+                  $ 599 "If open? False  or openR? False "
+                  if (open ==   False    or  openR ==   False  ):
+                    $ 600 "var_1?socket_close('T')"
+                    global var_1=socket_close("T")
+                    $ 601 "var_1?socket_close('R')"
+                    global var_1=socket_close("R")
+                    $ 602 "Set kamera=Off"
+                    set_standard_digital_out(2, False)
+                    $ 603 "Set ROUTER_off=On"
+                    set_standard_digital_out(6, True)
+                    $ 604 "Wait: 3.0"
+                    sleep(3.0)
+                    $ 605 "Set ROUTER_off=Off"
+                    set_standard_digital_out(6, False)
+                    $ 606 "Wait: 15.0"
+                    sleep(15.0)
+                    $ 607 "Set kamera=On"
+                    set_standard_digital_out(2, True)
+                    $ 608 "Wait: 30.0"
+                    sleep(30.0)
+                  end
+                end
+                $ 609 "socket_send_line(program_red, 'T')"
+                socket_send_line(program_red, "T")
+                $ 610 "Set LED_R=On"
+                set_standard_digital_out(7, True)
+                $ 611 "Wait: 0.5"
+                sleep(0.5)
+                $ 612 "socket_send_line('gen', 'T')"
+                socket_send_line("gen", "T")
+                $ 613 "cam_data_SERVER?socket_read_ascii_float(4,'R')"
+                global cam_data_SERVER=socket_read_ascii_float(4,"R")
+                $ 614 "Wait: 0.3"
+                sleep(0.3)
+                $ 615 "If cam_data_SERVER[2]?0"
+                if (cam_data_SERVER[2] == 0):
+                  $ 616 "Wait: 1.0"
+                  sleep(1.0)
+                  $ 617 "socket_send_line('gen', 'T')"
+                  socket_send_line("gen", "T")
+                  $ 618 "cam_data_SERVER?socket_read_ascii_float(4,'R')"
+                  global cam_data_SERVER=socket_read_ascii_float(4,"R")
+                end
+                $ 619 "If cam_data_SERVER[1]?0"
+                if (cam_data_SERVER[1] == 0):
+                  $ 620 "Wait: 1.0"
+                  sleep(1.0)
+                  $ 621 "socket_send_line('gen', 'T')"
+                  socket_send_line("gen", "T")
+                  $ 622 "cam_data_SERVER?socket_read_ascii_float(4,'R')"
+                  global cam_data_SERVER=socket_read_ascii_float(4,"R")
+                end
+                $ 623 "Set LED_R=Off"
+                set_standard_digital_out(7, False)
+                $ 624 "If cam_data_SERVER[1]?0"
+                if (cam_data_SERVER[1] == 0):
+                  $ 625 "socket_send_line(program_white, 'T')"
+                  socket_send_line(program_white, "T")
+                  $ 626 "Set LED_W=On"
+                  set_standard_digital_out(5, True)
+                  $ 627 "Wait: 1.0"
+                  sleep(1.0)
+                  $ 628 "socket_send_line('gen', 'T')"
+                  socket_send_line("gen", "T")
+                  $ 629 "cam_data_SERVER?socket_read_ascii_float(4,'R')"
+                  global cam_data_SERVER=socket_read_ascii_float(4,"R")
+                end
+                $ 630 "If cam_data_SERVER[1]?0"
+                if (cam_data_SERVER[1] == 0):
+                  $ 631 "Wait: 1.0"
+                  sleep(1.0)
+                  $ 632 "socket_send_line('gen', 'T')"
+                  socket_send_line("gen", "T")
+                  $ 633 "cam_data_SERVER?socket_read_ascii_float(4,'R')"
+                  global cam_data_SERVER=socket_read_ascii_float(4,"R")
+                end
+                $ 634 "Set LED_W=Off"
+                set_standard_digital_out(5, False)
+                $ 635 "var_1?socket_close('T')"
+                global var_1=socket_close("T")
+                $ 636 "var_1?socket_close('R')"
+                global var_1=socket_close("R")
+                $ 637 "Wait: 0"
+                $ 638 "If cam_data_SERVER[3]>50"
+                if (cam_data_SERVER[3]>50):
+                  $ 639 "TRY_TIMES?0"
+                  global TRY_TIMES=0
+                  $ 640 "MOVE"
+                  $ 641 "X?cam_data_SERVER[1]-CAM_DATA_2[0]"
+                  global X=cam_data_SERVER[1]-CAM_DATA_2[0]
+                  $ 642 "Y?cam_data_SERVER[2]-CAM_DATA_2[1]"
+                  global Y=cam_data_SERVER[2]-CAM_DATA_2[1]
+                  $ 643 "Z?0"
+                  global Z=0
+                  $ 644 "If cam_data_SERVER[4]>0"
+                  if (cam_data_SERVER[4]>0):
+                    $ 645 "Z?cam_data_SERVER[4]"
+                    global Z=cam_data_SERVER[4]
+                  end
+                  $ 646 "TRANS?p[-X/1000, -Y/1000, -Z/150, 0,0,0]"
+                  global TRANS=p[-X/1000, -Y/1000, -Z/150, 0,0,0]
+                  $ 647 "POSITION?pose_trans(NEXT_TARGET,TRANS)"
+                  global POSITION=pose_trans(NEXT_TARGET,TRANS)
+                  $ 648 "POSITION?pose_trans(POSITION,GO_UP_TO_SCAN)"
+                  global POSITION=pose_trans(POSITION,GO_UP_TO_SCAN)
+                  $ 649 "MoveL"
+                  $ 650 "NEXT_PREPARE"
+                  movel(pose_trans(p[0.0,0.0,0.0,0.0,0.0,0.0], NEXT_PREPARE), a=0.2, v=0.15)
+                  $ 651 "POSITION"
+                  movel(pose_trans(p[0.0,0.0,0.0,0.0,0.0,0.0], POSITION), a=0.2, v=0.15)
+                  $ 652 "PILA"
+                  $ 653 "Set OFF_PEDALAS=On"
+                  set_standard_digital_out(4, True)
+                  $ 654 "Set PILTI=On"
+                  set_standard_digital_out(0, True)
+                  $ 655 "Wait: 0.1"
+                  sleep(0.1)
+                  $ 656 "Set PILTI=Off"
+                  set_standard_digital_out(0, False)
+                  $ 657 "Wait: 1.0"
+                  sleep(1.0)
+                  $ 658 "Wait PILA=LO"
+                  while (get_standard_digital_in(0) == True):
+                    sync()
+                  end
+                  $ 659 "Wait: 2.0"
+                  sleep(2.0)
+                  $ 660 "POSITION?pose_trans(Tool,up)"
+                  global POSITION=pose_trans(get_forward_kin(),up)
+                  $ 661 "MoveL"
+                  $ 662 "POSITION"
+                  movel(pose_trans(p[0.0,0.0,0.0,0.0,0.0,0.0], POSITION), a=1.2, v=0.25)
+                  $ 663 "boxstatus?boxstatus+'1'"
+                  global boxstatus=boxstatus+"1"
+                else:
+                  $ 664 "Else"
+                  $ 665 "GO_UP_TO_SCAN?pose_sub(GO_UP_TO_SCAN,p[0,0,0.005,0,0,0])"
+                  global GO_UP_TO_SCAN=pose_sub(GO_UP_TO_SCAN,p[0,0,0.005,0,0,0])
+                  $ 666 "TRY_TIMES?TRY_TIMES-1"
+                  global TRY_TIMES=TRY_TIMES-1
+                  $ 667 "Wait: 0.5"
+                  sleep(0.5)
+                  $ 668 "If TRY_TIMES=0"
+                  if (TRY_TIMES <= 0):
+                    $ 669 "boxstatus?boxstatus+'2'"
+                    global boxstatus=boxstatus+"2"
+                    $ 670 "Set ALERM=On"
+                    set_standard_digital_out(1, True)
+                    $ 671 "Wait: 0.2"
+                    sleep(0.2)
+                    $ 672 "Set ALERM=Off"
+                    set_standard_digital_out(1, False)
+                  end
+                end
+              end
+              $ 673 "CALCULATE_NEXT"
+              $ 674 "NEXT_POSITION1?pose_sub(NEXT_POSITION1,GAP_2)"
+              global NEXT_POSITION1=pose_sub(NEXT_POSITION1,GAP_2)
+              $ 675 "NEXT_PREPARE?pose_sub(NEXT_PREPARE,GAP_2)"
+              global NEXT_PREPARE=pose_sub(NEXT_PREPARE,GAP_2)
+              $ 676 "NEXT_TARGET?pose_sub(NEXT_TARGET,GAP_2)"
+              global NEXT_TARGET=pose_sub(NEXT_TARGET,GAP_2)
+            end
+            $ 677 "PC"
+            $ 678 "If box1_ready? True "
+            if (box1_ready ==   True  ):
+              $ 679 "Set CO[7]=Off"
+              set_configurable_digital_out(7, False)
+              $ 680 "Wait: 0.3"
+              sleep(0.3)
+              $ 681 "Set CO[6]=On"
+              set_configurable_digital_out(6, True)
+            else:
+              $ 682 "ElseIf box2_ready? True "
+              if (box2_ready ==   True  ):
+                $ 683 "Set CO[6]=Off"
+                set_configurable_digital_out(6, False)
+                $ 684 "Wait: 0.3"
+                sleep(0.3)
+                $ 685 "Set CO[7]=On"
+                set_configurable_digital_out(7, True)
+              end
+            end
+            $ 686 "STATUSAS?'Keiciama padetis'"
+            global STATUSAS="Keiciama padetis"
+            $ 687 "MoveJ"
+            $ 688 "Waypoint_5"
+            movej([-0.09196359315981084, -0.2730477491961878, -2.1974409262286585, 0.8071788549423218, 1.9521396160125732, -2.4104562441455286], a=1.3962634015954636, v=1.0471975511965976, r=0.05)
+            $ 689 "Waypoint_6"
+            movej([1.0364373922348022, 0.07960939407348633, -1.7523348967181605, 0.06021618843078613, 1.928870439529419, -3.10876709619631], a=1.3962634015954636, v=1.0471975511965976, r=0.05)
+            $ 690 "Waypoint_7"
+            movej([1.8054789304733276, 0.06312012672424316, -1.5492656866656702, -0.25625640550722295, 1.582539439201355, -3.11495811143984], a=1.3962634015954636, v=1.0471975511965976, r=0.05)
+            $ 691 "Waypoint_8"
+            movej([2.806763172149658, 0.03466367721557617, -1.9938648382769983, 0.17972445487976074, 1.5345590114593506, -3.2817755381213587], a=1.3962634015954636, v=1.0471975511965976, r=0.05)
+            $ 692 "HOME"
+            movej([4.059589862823486, -0.23892623582948858, -0.6957071463214319, -0.7666257063495081, 1.3734469413757324, -4.050081793461935], a=1.3962634015954636, v=1.0471975511965976)
+          else:
+            $ 693 "Else"
+            $ 694 "MoveJ"
+            $ 695 "Waypoint_1"
+            movej([2.9377137893475274, 0.21854499064247396, -2.033179063504872, 0.10228519325456986, 1.5876350088369353, -2.9352042094679014], a=1.3962634015954636, v=1.0471975511965976)
+          end
+          $ 696 "Wait: 0.5"
+          sleep(0.5)
+        else:
+          $ 697 "ElseIf ProgramID?3"
+          if (ProgramID == 3):
+            $ 698 "STATUSAS?'Programa Dideli be flash su magnetu'"
+            global STATUSAS="Programa Dideli be flash su magnetu"
+            $ 699 "LF"
+            $ 700 "program_red?'ss 05'"
+            global program_red="ss 05"
+            $ 701 "program_white?'ss 06'"
+            global program_white="ss 06"
+            $ 702 "socket_send_line(program_red, 'T')"
+            socket_send_line(program_red, "T")
+            $ 703 "SE_UP"
+            $ 704 "If  False ? True "
+            if (  False   ==   True  ):
+              $ 705 "POSITION_SET"
+              $ 706 "MoveL"
+              $ 707 "START_1"
+              movel([3.3461995124816895, -0.3476365248309534, -1.632474724446432, 0.2117537260055542, 1.5106351375579834, -3.337876621876852], a=1.2, v=0.25)
+              $ 708 "END_1"
+              movel([1.919594645500183, -0.3474329153644007, -1.5066826979266565, 0.19382119178771973, 1.7581738233566284, -1.9259331862079065], a=1.2, v=0.25)
+              $ 709 "START_2"
+              movel([0.36602482199668884, -0.31864864030946904, -1.5581181685077112, 0.11157917976379395, 1.5014219284057617, -3.5092507044421595], a=1.2, v=0.25)
+              $ 710 "END_2"
+              movel([-1.1836875120746058, -0.39678985277284795, -1.582911793385641, 0.334226131439209, 1.764879822731018, -1.9733226935016077], a=1.2, v=0.25)
+              $ 711 "TARGET_1"
+              movel([3.467092990875244, -0.5632346312152308, -1.6126235167132776, 0.41588330268859863, 1.487918734550476, -3.4567533175097864], a=1.2, v=0.25)
+              $ 712 "TARGET_2"
+              movel([0.48884403705596924, -0.5019725004779261, -1.5533679167376917, 0.29990673065185547, 1.4785743951797485, -3.630141083394186], a=1.2, v=0.25)
+              $ 713 "PREPARE1"
+              movel([3.4301133155822754, -0.4877274672137659, -1.6932151953326624, 0.418124794960022, 1.494837760925293, -3.4200950304614466], a=1.2, v=0.25)
+              $ 714 "PREPARE2"
+              movel([0.38857313990592957, -0.36140567461122686, -1.578641716633932, 0.08079731464385986, 1.4527881145477295, -3.520498577748434], a=1.2, v=0.25)
+            end
+            $ 715 "CONNECT"
+            $ 716 "CONNECT"
+            $ 717 "cam_TRY?10"
+            global cam_TRY=10
+            $ 718 "cam_TRY2?10"
+            global cam_TRY2=10
+            $ 719 "open?socket_open(camera_IP,portS, 'T')"
+            global open=socket_open(camera_IP,portS, "T")
+            $ 720 "Loop open? False  and cam_TRY>0"
+            while (open ==   False    and  cam_TRY>0):
+              $ 721 "open?socket_open(camera_IP,portS, 'T')"
+              global open=socket_open(camera_IP,portS, "T")
+              $ 722 "cam_TRY?cam_TRY-1"
+              global cam_TRY=cam_TRY-1
+              $ 723 "Wait: 0.5"
+              sleep(0.5)
+            end
+            $ 724 "openR?socket_open(camera_IP,portR, 'R')"
+            global openR=socket_open(camera_IP,portR, "R")
+            $ 725 "Loop openR? False  and cam_TRY2>0"
+            while (openR ==   False    and  cam_TRY2>0):
+              $ 726 "openR?socket_open(camera_IP,portR, 'R')"
+              global openR=socket_open(camera_IP,portR, "R")
+              $ 727 "cam_TRY2?cam_TRY2-1"
+              global cam_TRY2=cam_TRY2-1
+              $ 728 "Wait: 0.5"
+              sleep(0.5)
+            end
+            $ 729 "If open? False  or openR? False "
+            if (open ==   False    or  openR ==   False  ):
+              $ 730 "var_1?socket_close('T')"
+              global var_1=socket_close("T")
+              $ 731 "var_1?socket_close('R')"
+              global var_1=socket_close("R")
+              $ 732 "Set kamera=Off"
+              set_standard_digital_out(2, False)
+              $ 733 "Set ROUTER_off=On"
+              set_standard_digital_out(6, True)
+              $ 734 "Wait: 3.0"
+              sleep(3.0)
+              $ 735 "Set ROUTER_off=Off"
+              set_standard_digital_out(6, False)
+              $ 736 "Wait: 15.0"
+              sleep(15.0)
+              $ 737 "Set kamera=On"
+              set_standard_digital_out(2, True)
+              $ 738 "Wait: 30.0"
+              sleep(30.0)
+            end
+            $ 739 "SET_PROGRAM"
+            $ 740 "socket_send_line(program_red, 'T')"
+            socket_send_line(program_red, "T")
+            $ 741 "Wait: 2.0"
+            sleep(2.0)
+            $ 742 "var_1?socket_close('T')"
+            global var_1=socket_close("T")
+            $ 743 "var_1?socket_close('R')"
+            global var_1=socket_close("R")
+            $ 744 "NEXT_POSITION1? START_1"
+            global NEXT_POSITION1= p[.232714819177, .157190164613, .714956483345, .146295028470, -.177579253100, -1.560492293928]
+            $ 745 "kiekis_EILEJE?10"
+            global kiekis_EILEJE=10
+            $ 746 "NEXT_TARGET?TARGET_1"
+            global NEXT_TARGET=p[.156102365644, .161116292873, .741059383063, .146588303546, -.177632339525, -1.560566347455]
+            $ 747 "NEXT_PREPARE?PREPARE1"
+            global NEXT_PREPARE=p[.169930060255, .158853951469, .724757741571, .146415523388, -.177690626097, -1.560471650394]
+            $ 748 "GAP_1?interpolate_pose(START_1,END_1,(1/(kiekis_EILEJE-1)))"
+            global GAP_1=interpolate_pose(p[.232714819177, .157190164613, .714956483345, .146295028470, -.177579253100, -1.560492293928],p[.225324549152, -.199586963900, .714942828040, .146249177439, -.177422449826, -1.560601714860],(1/(kiekis_EILEJE-1)))
+            $ 749 "GAP_1?pose_sub(START_1,GAP_1)"
+            global GAP_1=pose_sub(p[.232714819177, .157190164613, .714956483345, .146295028470, -.177579253100, -1.560492293928],GAP_1)
+            $ 750 "CAM_DATA?[51.7,44.50]"
+            global CAM_DATA=[51.7,44.50]
+            $ 751 "up?p[0,0,-0.005,0,0,0]"
+            global up=p[0,0,-0.005,0,0,0]
+            $ 752 "GAP_2?interpolate_pose(START_2,END_2,(1/(kiekis_EILEJE-1)))"
+            global GAP_2=interpolate_pose(p[-.226231301260, -.188341883020, .715713899088, .158447408467, .166402943801, 1.558325239652],p[-.221470003831, .171979419327, .715724118587, .158472397068, .166439029451, 1.558325913463],(1/(kiekis_EILEJE-1)))
+            $ 753 "GAP_2?pose_sub(START_2,GAP_2)"
+            global GAP_2=pose_sub(p[-.226231301260, -.188341883020, .715713899088, .158447408467, .166402943801, 1.558325239652],GAP_2)
+            $ 754 "CAM_DATA_2?[48.42,45.3]"
+            global CAM_DATA_2=[48.42,45.3]
+            $ 755 "MoveJ"
+            $ 756 "pradinis_taskas"
+            movej([3.658179597457675, 0.149264654890362, -1.4248871757822776, -0.49905795162095856, 1.4449623949215322, -3.646990267969893], a=1.3962634015954636, v=1.0471975511965976, r=0.05)
+            $ 757 "SET_LINE_AMOUNT"
+            $ 758 "If kiekis>10"
+            if (kiekis>10):
+              $ 759 "loop1?10"
+              global loop1=10
+            else:
+              $ 760 "Else"
+              $ 761 "loop1?kiekis"
+              global loop1=kiekis
+            end
+            $ 762 "Loop loop1>0"
+            while (loop1>0):
+              $ 763 "loop1?loop1-1"
+              global loop1=loop1-1
+              $ 764 "PROC1"
+              $ 765 "MoveJ"
+              $ 766 "NEXT_POSITION1"
+              movej(NEXT_POSITION1, a=1.3962634015954636, v=1.0471975511965976)
+              $ 767 "TRY_TIMES?3"
+              global TRY_TIMES=3
+              $ 768 "GO_UP_TO_SCAN?p[0,0,0.00,0,0,0]"
+              global GO_UP_TO_SCAN=p[0,0,0.00,0,0,0]
+              $ 769 "Loop TRY_TIMES>0"
+              while (TRY_TIMES>0):
+                $ 770 "POSITION?pose_trans(Tool,GO_UP_TO_SCAN)"
+                global POSITION=pose_trans(get_forward_kin(),GO_UP_TO_SCAN)
+                $ 771 "MoveL"
+                $ 772 "POSITION"
+                movel(pose_trans(p[0.0,0.0,0.0,0.0,0.0,0.0], POSITION), a=0.5, v=0.08)
+                $ 773 "SCAN"
+                $ 774 "socket_send_line(program_red, 'T')"
+                socket_send_line(program_red, "T")
+                $ 775 "open? False "
+                global open=  False  
+                $ 776 "openR? False "
+                global openR=  False  
+                $ 777 "cam_data_SERVER?[0,0,0,0,0]"
+                global cam_data_SERVER=[0,0,0,0,0]
+                $ 778 "Loop openR? False  or open? False "
+                while (openR ==   False    or  open ==   False  ):
+                  $ 779 "CONNECT"
+                  $ 780 "cam_TRY?4"
+                  global cam_TRY=4
+                  $ 781 "cam_TRY2?4"
+                  global cam_TRY2=4
+                  $ 782 "open?socket_open(camera_IP,portS, 'T')"
+                  global open=socket_open(camera_IP,portS, "T")
+                  $ 783 "Loop open? False  and cam_TRY>0"
+                  while (open ==   False    and  cam_TRY>0):
+                    $ 784 "open?socket_open(camera_IP,portS,'T')"
+                    global open=socket_open(camera_IP,portS,"T")
+                    $ 785 "cam_TRY?cam_TRY-1"
+                    global cam_TRY=cam_TRY-1
+                    $ 786 "Wait: 0.5"
+                    sleep(0.5)
+                  end
+                  $ 787 "openR?socket_open(camera_IP,portR, 'R')"
+                  global openR=socket_open(camera_IP,portR, "R")
+                  $ 788 "Loop openR? False  and cam_TRY2>0"
+                  while (openR ==   False    and  cam_TRY2>0):
+                    $ 789 "openR?socket_open(camera_IP,portR,'R')"
+                    global openR=socket_open(camera_IP,portR,"R")
+                    $ 790 "cam_TRY2?cam_TRY2-1"
+                    global cam_TRY2=cam_TRY2-1
+                    $ 791 "Wait: 0.5"
+                    sleep(0.5)
+                  end
+                  $ 792 "If open? False  or openR? False "
+                  if (open ==   False    or  openR ==   False  ):
+                    $ 793 "var_1?socket_close('T')"
+                    global var_1=socket_close("T")
+                    $ 794 "var_1?socket_close('R')"
+                    global var_1=socket_close("R")
+                    $ 795 "Set kamera=Off"
+                    set_standard_digital_out(2, False)
+                    $ 796 "Set ROUTER_off=On"
+                    set_standard_digital_out(6, True)
+                    $ 797 "Wait: 3.0"
+                    sleep(3.0)
+                    $ 798 "Set ROUTER_off=Off"
+                    set_standard_digital_out(6, False)
+                    $ 799 "Wait: 15.0"
+                    sleep(15.0)
+                    $ 800 "Set kamera=On"
+                    set_standard_digital_out(2, True)
+                    $ 801 "Wait: 30.0"
+                    sleep(30.0)
+                  end
+                end
+                $ 802 "socket_send_line(program_red, 'T')"
+                socket_send_line(program_red, "T")
+                $ 803 "Set LED_R=On"
+                set_standard_digital_out(7, True)
+                $ 804 "Wait: 0.5"
+                sleep(0.5)
+                $ 805 "socket_send_line('gen', 'T')"
+                socket_send_line("gen", "T")
+                $ 806 "cam_data_SERVER?socket_read_ascii_float(4,'R')"
+                global cam_data_SERVER=socket_read_ascii_float(4,"R")
+                $ 807 "Wait: 0.3"
+                sleep(0.3)
+                $ 808 "If cam_data_SERVER[2]?0"
+                if (cam_data_SERVER[2] == 0):
+                  $ 809 "Wait: 1.0"
+                  sleep(1.0)
+                  $ 810 "socket_send_line('gen', 'T')"
+                  socket_send_line("gen", "T")
+                  $ 811 "cam_data_SERVER?socket_read_ascii_float(4,'R')"
+                  global cam_data_SERVER=socket_read_ascii_float(4,"R")
+                end
+                $ 812 "If cam_data_SERVER[1]?0"
+                if (cam_data_SERVER[1] == 0):
+                  $ 813 "Wait: 1.0"
+                  sleep(1.0)
+                  $ 814 "socket_send_line('gen', 'T')"
+                  socket_send_line("gen", "T")
+                  $ 815 "cam_data_SERVER?socket_read_ascii_float(4,'R')"
+                  global cam_data_SERVER=socket_read_ascii_float(4,"R")
+                end
+                $ 816 "Set LED_R=Off"
+                set_standard_digital_out(7, False)
+                $ 817 "If cam_data_SERVER[1]?0"
+                if (cam_data_SERVER[1] == 0):
+                  $ 818 "socket_send_line(program_white, 'T')"
+                  socket_send_line(program_white, "T")
+                  $ 819 "Set LED_W=On"
+                  set_standard_digital_out(5, True)
+                  $ 820 "Wait: 1.0"
+                  sleep(1.0)
+                  $ 821 "socket_send_line('gen', 'T')"
+                  socket_send_line("gen", "T")
+                  $ 822 "cam_data_SERVER?socket_read_ascii_float(4,'R')"
+                  global cam_data_SERVER=socket_read_ascii_float(4,"R")
+                end
+                $ 823 "If cam_data_SERVER[1]?0"
+                if (cam_data_SERVER[1] == 0):
+                  $ 824 "Wait: 1.0"
+                  sleep(1.0)
+                  $ 825 "socket_send_line('gen', 'T')"
+                  socket_send_line("gen", "T")
+                  $ 826 "cam_data_SERVER?socket_read_ascii_float(4,'R')"
+                  global cam_data_SERVER=socket_read_ascii_float(4,"R")
+                end
+                $ 827 "Set LED_W=Off"
+                set_standard_digital_out(5, False)
+                $ 828 "var_1?socket_close('T')"
+                global var_1=socket_close("T")
+                $ 829 "var_1?socket_close('R')"
+                global var_1=socket_close("R")
+                $ 830 "Wait: 0"
+                $ 831 "If cam_data_SERVER[3]>50"
+                if (cam_data_SERVER[3]>50):
+                  $ 832 "TRY_TIMES?0"
+                  global TRY_TIMES=0
+                  $ 833 "MOVE"
+                  $ 834 "X?cam_data_SERVER[1]-CAM_DATA[0]"
+                  global X=cam_data_SERVER[1]-CAM_DATA[0]
+                  $ 835 "Y?cam_data_SERVER[2]-CAM_DATA[1]"
+                  global Y=cam_data_SERVER[2]-CAM_DATA[1]
+                  $ 836 "Z?0"
+                  global Z=0
+                  $ 837 "If cam_data_SERVER[4]>0"
+                  if (cam_data_SERVER[4]>0):
+                    $ 838 "Z?cam_data_SERVER[4]"
+                    global Z=cam_data_SERVER[4]
+                  end
+                  $ 839 "TRANS?p[-X/1000, -Y/1000, -Z/150, 0,0,0]"
+                  global TRANS=p[-X/1000, -Y/1000, -Z/150, 0,0,0]
+                  $ 840 "POSITION?pose_trans(NEXT_TARGET,TRANS)"
+                  global POSITION=pose_trans(NEXT_TARGET,TRANS)
+                  $ 841 "POSITION?pose_trans(POSITION,GO_UP_TO_SCAN)"
+                  global POSITION=pose_trans(POSITION,GO_UP_TO_SCAN)
+                  $ 842 "MoveL"
+                  $ 843 "NEXT_PREPARE"
+                  movel(pose_trans(p[0.0,0.0,0.0,0.0,0.0,0.0], NEXT_PREPARE), a=0.2, v=0.15)
+                  $ 844 "POSITION"
+                  movel(pose_trans(p[0.0,0.0,0.0,0.0,0.0,0.0], POSITION), a=0.2, v=0.15)
+                  $ 845 "PILA"
+                  $ 846 "Set OFF_PEDALAS=On"
+                  set_standard_digital_out(4, True)
+                  $ 847 "Set PILTI=On"
+                  set_standard_digital_out(0, True)
+                  $ 848 "Wait: 0.1"
+                  sleep(0.1)
+                  $ 849 "Set PILTI=Off"
+                  set_standard_digital_out(0, False)
+                  $ 850 "Wait: 1.0"
+                  sleep(1.0)
+                  $ 851 "Wait PILA=LO"
+                  while (get_standard_digital_in(0) == True):
+                    sync()
+                  end
+                  $ 852 "Wait: 2.0"
+                  sleep(2.0)
+                  $ 853 "POSITION?pose_trans(Tool,up)"
+                  global POSITION=pose_trans(get_forward_kin(),up)
+                  $ 854 "MoveL"
+                  $ 855 "POSITION"
+                  movel(pose_trans(p[0.0,0.0,0.0,0.0,0.0,0.0], POSITION), a=1.2, v=0.25)
+                  $ 856 "boxstatus?boxstatus+'1'"
+                  global boxstatus=boxstatus+"1"
+                else:
+                  $ 857 "Else"
+                  $ 858 "GO_UP_TO_SCAN?pose_sub(GO_UP_TO_SCAN,p[0,0,0.005,0,0,0])"
+                  global GO_UP_TO_SCAN=pose_sub(GO_UP_TO_SCAN,p[0,0,0.005,0,0,0])
+                  $ 859 "TRY_TIMES?TRY_TIMES-1"
+                  global TRY_TIMES=TRY_TIMES-1
+                  $ 860 "Wait: 0.5"
+                  sleep(0.5)
+                  $ 861 "If TRY_TIMES=0"
+                  if (TRY_TIMES <= 0):
+                    $ 862 "boxstatus?boxstatus+'2'"
+                    global boxstatus=boxstatus+"2"
+                    $ 863 "Set ALERM=On"
+                    set_standard_digital_out(1, True)
+                    $ 864 "Wait: 0.2"
+                    sleep(0.2)
+                    $ 865 "Set ALERM=Off"
+                    set_standard_digital_out(1, False)
+                  end
+                end
+              end
+              $ 866 "CALCULATE_NEXT"
+              $ 867 "NEXT_POSITION1?pose_sub(NEXT_POSITION1,GAP_1)"
+              global NEXT_POSITION1=pose_sub(NEXT_POSITION1,GAP_1)
+              $ 868 "NEXT_PREPARE?pose_sub(NEXT_PREPARE,GAP_1)"
+              global NEXT_PREPARE=pose_sub(NEXT_PREPARE,GAP_1)
+              $ 869 "NEXT_TARGET?pose_sub(NEXT_TARGET,GAP_1)"
+              global NEXT_TARGET=pose_sub(NEXT_TARGET,GAP_1)
+            end
+            $ 870 "If kiekis>10"
+            if (kiekis>10):
+              $ 871 "ROTATE"
+              $ 872 "MoveJ"
+              $ 873 "Waypoint_2"
+              movej([1.9212160871800172, -0.032110517201624944, -1.6613083820463004, 0.03144382527506373, 1.7927498678800617, -1.932834092954856], a=1.3962634015954636, v=1.0471975511965976, r=0.05)
+              $ 874 "Waypoint_3"
+              movej([0.7361547240980064, -0.032110517201624944, -1.6613083820463004, 0.031443825275063765, 1.641413867880062, -3.212034092954857], a=1.3962634015954636, v=1.0471975511965976, r=0.05)
+              $ 875 "Waypoint_4"
+              movej([0.4907963907510013, -0.12940547252179613, -1.8633449294614408, 0.18446284612559743, 1.4999908905509987, -3.600044155751935], a=1.3962634015954636, v=1.0471975511965976)
+              $ 876 "NEXT_POSITION1?START_2"
+              global NEXT_POSITION1=p[-.226231301260, -.188341883020, .715713899088, .158447408467, .166402943801, 1.558325239652]
+              $ 877 "NEXT_TARGET?TARGET_2"
+              global NEXT_TARGET=p[-.154318300144, -.185840899164, .741117601404, .158624866593, .166474286822, 1.558317956377]
+              $ 878 "NEXT_PREPARE?PREPARE2"
+              global NEXT_PREPARE=p[-.176833961685, -.187473268704, .730804986817, .245302782197, .243979677800, 1.551458183280]
+              $ 879 "loop1?kiekis-10"
+              global loop1=kiekis-10
+              $ 880 "Loop loop1"
+              while (loop1):
+                $ 881 "loop1?loop1-1"
+                global loop1=loop1-1
+                $ 882 "PROC1"
+                $ 883 "MoveJ"
+                $ 884 "NEXT_POSITION1"
+                movej(NEXT_POSITION1, a=1.3962634015954636, v=1.0471975511965976)
+                $ 885 "TRY_TIMES?3"
+                global TRY_TIMES=3
+                $ 886 "GO_UP_TO_SCAN?p[0,0,0.00,0,0,0]"
+                global GO_UP_TO_SCAN=p[0,0,0.00,0,0,0]
+                $ 887 "Loop TRY_TIMES>0"
+                while (TRY_TIMES>0):
+                  $ 888 "POSITION?pose_trans(Tool,GO_UP_TO_SCAN)"
+                  global POSITION=pose_trans(get_forward_kin(),GO_UP_TO_SCAN)
+                  $ 889 "MoveL"
+                  $ 890 "POSITION"
+                  movel(pose_trans(p[0.0,0.0,0.0,0.0,0.0,0.0], POSITION), a=0.5, v=0.08)
+                  $ 891 "SCAN"
+                  $ 892 "open? False "
+                  global open=  False  
+                  $ 893 "openR? False "
+                  global openR=  False  
+                  $ 894 "cam_data_SERVER?[0,0,0,0,0]"
+                  global cam_data_SERVER=[0,0,0,0,0]
+                  $ 895 "Loop openR? False  or open? False "
+                  while (openR ==   False    or  open ==   False  ):
+                    $ 896 "CONNECT"
+                    $ 897 "cam_TRY?10"
+                    global cam_TRY=10
+                    $ 898 "cam_TRY2?10"
+                    global cam_TRY2=10
+                    $ 899 "open?socket_open(camera_IP,portS, 'T')"
+                    global open=socket_open(camera_IP,portS, "T")
+                    $ 900 "Loop open? False  and cam_TRY>0"
+                    while (open ==   False    and  cam_TRY>0):
+                      $ 901 "open?socket_open(camera_IP,portS,'T')"
+                      global open=socket_open(camera_IP,portS,"T")
+                      $ 902 "cam_TRY?cam_TRY-1"
+                      global cam_TRY=cam_TRY-1
+                      $ 903 "Wait: 0.5"
+                      sleep(0.5)
+                    end
+                    $ 904 "openR?socket_open(camera_IP,portR, 'R')"
+                    global openR=socket_open(camera_IP,portR, "R")
+                    $ 905 "Loop openR? False  and cam_TRY2>0"
+                    while (openR ==   False    and  cam_TRY2>0):
+                      $ 906 "openR?socket_open(camera_IP,portR,'R')"
+                      global openR=socket_open(camera_IP,portR,"R")
+                      $ 907 "cam_TRY2?cam_TRY2-1"
+                      global cam_TRY2=cam_TRY2-1
+                      $ 908 "Wait: 0.5"
+                      sleep(0.5)
+                    end
+                    $ 909 "If open? False  or openR? False "
+                    if (open ==   False    or  openR ==   False  ):
+                      $ 910 "var_1?socket_close('T')"
+                      global var_1=socket_close("T")
+                      $ 911 "var_1?socket_close('R')"
+                      global var_1=socket_close("R")
+                      $ 912 "Set kamera=Off"
+                      set_standard_digital_out(2, False)
+                      $ 913 "Set ROUTER_off=On"
+                      set_standard_digital_out(6, True)
+                      $ 914 "Wait: 3.0"
+                      sleep(3.0)
+                      $ 915 "Set ROUTER_off=Off"
+                      set_standard_digital_out(6, False)
+                      $ 916 "Wait: 15.0"
+                      sleep(15.0)
+                      $ 917 "Set kamera=On"
+                      set_standard_digital_out(2, True)
+                      $ 918 "Wait: 30.0"
+                      sleep(30.0)
+                    end
+                  end
+                  $ 919 "socket_send_line(program_red, 'T')"
+                  socket_send_line(program_red, "T")
+                  $ 920 "Set LED_R=On"
+                  set_standard_digital_out(7, True)
+                  $ 921 "Wait: 0.5"
+                  sleep(0.5)
+                  $ 922 "socket_send_line('gen', 'T')"
+                  socket_send_line("gen", "T")
+                  $ 923 "cam_data_SERVER?socket_read_ascii_float(4,'R')"
+                  global cam_data_SERVER=socket_read_ascii_float(4,"R")
+                  $ 924 "Wait: 0.3"
+                  sleep(0.3)
+                  $ 925 "If cam_data_SERVER[2]?0"
+                  if (cam_data_SERVER[2] == 0):
+                    $ 926 "Wait: 1.0"
+                    sleep(1.0)
+                    $ 927 "socket_send_line('gen', 'T')"
+                    socket_send_line("gen", "T")
+                    $ 928 "cam_data_SERVER?socket_read_ascii_float(4,'R')"
+                    global cam_data_SERVER=socket_read_ascii_float(4,"R")
+                  end
+                  $ 929 "If cam_data_SERVER[1]?0"
+                  if (cam_data_SERVER[1] == 0):
+                    $ 930 "Wait: 1.0"
+                    sleep(1.0)
+                    $ 931 "socket_send_line('gen', 'T')"
+                    socket_send_line("gen", "T")
+                    $ 932 "cam_data_SERVER?socket_read_ascii_float(4,'R')"
+                    global cam_data_SERVER=socket_read_ascii_float(4,"R")
+                  end
+                  $ 933 "Set LED_R=Off"
+                  set_standard_digital_out(7, False)
+                  $ 934 "If cam_data_SERVER[1]?0"
+                  if (cam_data_SERVER[1] == 0):
+                    $ 935 "socket_send_line(program_white, 'T')"
+                    socket_send_line(program_white, "T")
+                    $ 936 "Set LED_W=On"
+                    set_standard_digital_out(5, True)
+                    $ 937 "Wait: 1.0"
+                    sleep(1.0)
+                    $ 938 "socket_send_line('gen', 'T')"
+                    socket_send_line("gen", "T")
+                    $ 939 "cam_data_SERVER?socket_read_ascii_float(4,'R')"
+                    global cam_data_SERVER=socket_read_ascii_float(4,"R")
+                  end
+                  $ 940 "If cam_data_SERVER[1]?0"
+                  if (cam_data_SERVER[1] == 0):
+                    $ 941 "Wait: 1.0"
+                    sleep(1.0)
+                    $ 942 "socket_send_line('gen', 'T')"
+                    socket_send_line("gen", "T")
+                    $ 943 "cam_data_SERVER?socket_read_ascii_float(4,'R')"
+                    global cam_data_SERVER=socket_read_ascii_float(4,"R")
+                  end
+                  $ 944 "Set LED_W=Off"
+                  set_standard_digital_out(5, False)
+                  $ 945 "var_1?socket_close('T')"
+                  global var_1=socket_close("T")
+                  $ 946 "var_1?socket_close('R')"
+                  global var_1=socket_close("R")
+                  $ 947 "Wait: 0"
+                  $ 948 "If cam_data_SERVER[3]>50"
+                  if (cam_data_SERVER[3]>50):
+                    $ 949 "TRY_TIMES?0"
+                    global TRY_TIMES=0
+                    $ 950 "MOVE"
+                    $ 951 "X?cam_data_SERVER[1]-CAM_DATA_2[0]"
+                    global X=cam_data_SERVER[1]-CAM_DATA_2[0]
+                    $ 952 "Y?cam_data_SERVER[2]-CAM_DATA_2[1]"
+                    global Y=cam_data_SERVER[2]-CAM_DATA_2[1]
+                    $ 953 "Z?0"
+                    global Z=0
+                    $ 954 "If cam_data_SERVER[4]>0"
+                    if (cam_data_SERVER[4]>0):
+                      $ 955 "Z?cam_data_SERVER[4]"
+                      global Z=cam_data_SERVER[4]
+                    end
+                    $ 956 "TRANS?p[-X/1000, -Y/1000, -Z/150, 0,0,0]"
+                    global TRANS=p[-X/1000, -Y/1000, -Z/150, 0,0,0]
+                    $ 957 "POSITION?pose_trans(NEXT_TARGET,TRANS)"
+                    global POSITION=pose_trans(NEXT_TARGET,TRANS)
+                    $ 958 "POSITION?pose_trans(POSITION,GO_UP_TO_SCAN)"
+                    global POSITION=pose_trans(POSITION,GO_UP_TO_SCAN)
+                    $ 959 "MoveL"
+                    $ 960 "NEXT_PREPARE"
+                    movel(pose_trans(p[0.0,0.0,0.0,0.0,0.0,0.0], NEXT_PREPARE), a=0.2, v=0.15)
+                    $ 961 "POSITION"
+                    movel(pose_trans(p[0.0,0.0,0.0,0.0,0.0,0.0], POSITION), a=0.2, v=0.15)
+                    $ 962 "PILA"
+                    $ 963 "Set OFF_PEDALAS=On"
+                    set_standard_digital_out(4, True)
+                    $ 964 "Set PILTI=On"
+                    set_standard_digital_out(0, True)
+                    $ 965 "Wait: 0.1"
+                    sleep(0.1)
+                    $ 966 "Set PILTI=Off"
+                    set_standard_digital_out(0, False)
+                    $ 967 "Wait: 1.0"
+                    sleep(1.0)
+                    $ 968 "Wait PILA=LO"
+                    while (get_standard_digital_in(0) == True):
+                      sync()
+                    end
+                    $ 969 "Wait: 2.0"
+                    sleep(2.0)
+                    $ 970 "POSITION?pose_trans(Tool,up)"
+                    global POSITION=pose_trans(get_forward_kin(),up)
+                    $ 971 "MoveL"
+                    $ 972 "POSITION"
+                    movel(pose_trans(p[0.0,0.0,0.0,0.0,0.0,0.0], POSITION), a=1.2, v=0.25)
+                    $ 973 "boxstatus?boxstatus+'1'"
+                    global boxstatus=boxstatus+"1"
+                  else:
+                    $ 974 "Else"
+                    $ 975 "GO_UP_TO_SCAN?pose_sub(GO_UP_TO_SCAN,p[0,0,0.005,0,0,0])"
+                    global GO_UP_TO_SCAN=pose_sub(GO_UP_TO_SCAN,p[0,0,0.005,0,0,0])
+                    $ 976 "TRY_TIMES?TRY_TIMES-1"
+                    global TRY_TIMES=TRY_TIMES-1
+                    $ 977 "Wait: 0.5"
+                    sleep(0.5)
+                    $ 978 "If TRY_TIMES=0"
+                    if (TRY_TIMES <= 0):
+                      $ 979 "boxstatus?boxstatus+'2'"
+                      global boxstatus=boxstatus+"2"
+                      $ 980 "Set ALERM=On"
+                      set_standard_digital_out(1, True)
+                      $ 981 "Wait: 0.2"
+                      sleep(0.2)
+                      $ 982 "Set ALERM=Off"
+                      set_standard_digital_out(1, False)
+                    end
+                  end
+                end
+                $ 983 "CALCULATE_NEXT"
+                $ 984 "NEXT_POSITION1?pose_sub(NEXT_POSITION1,GAP_2)"
+                global NEXT_POSITION1=pose_sub(NEXT_POSITION1,GAP_2)
+                $ 985 "NEXT_PREPARE?pose_sub(NEXT_PREPARE,GAP_2)"
+                global NEXT_PREPARE=pose_sub(NEXT_PREPARE,GAP_2)
+                $ 986 "NEXT_TARGET?pose_sub(NEXT_TARGET,GAP_2)"
+                global NEXT_TARGET=pose_sub(NEXT_TARGET,GAP_2)
+              end
+              $ 987 "PC"
+              $ 988 "If box1_ready? True "
+              if (box1_ready ==   True  ):
+                $ 989 "Set CO[7]=Off"
+                set_configurable_digital_out(7, False)
+                $ 990 "Wait: 0.3"
+                sleep(0.3)
+                $ 991 "Set CO[6]=On"
+                set_configurable_digital_out(6, True)
+              else:
+                $ 992 "ElseIf box2_ready? True "
+                if (box2_ready ==   True  ):
+                  $ 993 "Set CO[6]=Off"
+                  set_configurable_digital_out(6, False)
+                  $ 994 "Wait: 0.3"
+                  sleep(0.3)
+                  $ 995 "Set CO[7]=On"
+                  set_configurable_digital_out(7, True)
+                end
+              end
+              $ 996 "STATUSAS?'Keiciama padetis'"
+              global STATUSAS="Keiciama padetis"
+              $ 997 "MoveJ"
+              $ 998 "Waypoint_5"
+              movej([-0.09196359315981084, -0.2730477491961878, -2.1974409262286585, 0.8071788549423218, 1.9521396160125732, -2.4104562441455286], a=1.3962634015954636, v=1.0471975511965976, r=0.05)
+              $ 999 "Waypoint_6"
+              movej([1.0364373922348022, 0.07960939407348633, -1.7523348967181605, 0.06021618843078613, 1.928870439529419, -3.10876709619631], a=1.3962634015954636, v=1.0471975511965976, r=0.05)
+              $ 1000 "Waypoint_7"
+              movej([1.8054789304733276, 0.06312012672424316, -1.5492656866656702, -0.25625640550722295, 1.582539439201355, -3.11495811143984], a=1.3962634015954636, v=1.0471975511965976, r=0.05)
+              $ 1001 "Waypoint_8"
+              movej([2.806763172149658, 0.03466367721557617, -1.9938648382769983, 0.17972445487976074, 1.5345590114593506, -3.2817755381213587], a=1.3962634015954636, v=1.0471975511965976, r=0.05)
+              $ 1002 "HOME"
+              movej([4.059589862823486, -0.23892623582948858, -0.6957071463214319, -0.7666257063495081, 1.3734469413757324, -4.050081793461935], a=1.3962634015954636, v=1.0471975511965976)
+            else:
+              $ 1003 "Else"
+              $ 1004 "MoveJ"
+              $ 1005 "Waypoint_1"
+              movej([2.9377137893475274, 0.21854499064247396, -2.033179063504872, 0.10228519325456986, 1.5876350088369353, -2.9352042094679014], a=1.3962634015954636, v=1.0471975511965976)
+            end
+            $ 1006 "Wait: 0.5"
+            sleep(0.5)
+          else:
+            $ 1007 "Else"
+            $ 1008 "STATUSAS?'Tokios programos nera'"
+            global STATUSAS="Tokios programos nera"
+          end
+        end
+      end
+      $ 1009 "PC"
+      $ 1010 "If running_box?1"
+      if (running_box == 1):
+        $ 1011 "started_fill_ms? True "
+        global started_fill_ms=  True  
+        $ 1012 "running_box?0"
+        global running_box=0
+      else:
+        $ 1013 "ElseIf running_box?2"
+        if (running_box == 2):
+          $ 1014 "started_fill_ms? True "
+          global started_fill_ms=  True  
+          $ 1015 "running_box?0"
+          global running_box=0
+        end
+      end
+      $ 1016 "boxstatus?''"
+      global boxstatus=""
+    end
+  end
+end
